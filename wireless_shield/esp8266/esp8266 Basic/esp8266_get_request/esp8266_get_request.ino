@@ -11,11 +11,11 @@ SoftwareSerial esp(3, 2); // RX Pin 3 Receptor | TX Pin 2 Transmisor
 String ESP8266_SSID = "Minga!";
 String ESP8266_PASSWORD = "hj?*ara4";
 //Server config definition-------------------------------
-//String SERVER = "ceneha.herokuapp.com";
-//String URI = "/api-reg";
-//String AUTH = "ZGF0YWxvZ2dlcjpkYXRhbG9nZ2VyMTIz"; //bASE64 Encode
-String SERVER = "arduino.cc";
-String URI = "/asciilogo.txt";
+String SERVER = "ceneha.herokuapp.com";
+String URI = "/api-reg/";
+String AUTH = "ZGF0YWxvZ2dlcjpkYXRhbG9nZ2VyMTIz"; //bASE64 Encode
+//String SERVER = "arduino.cc";
+//String URI = "/asciilogo.txt";
 //variables de control
 char cmd; //variable para control de comunicacion entre consola, esp y arduino
 int baudios = 9600;
@@ -129,7 +129,8 @@ void get_request() {
   //get request string
   String hostt = "GET " + URI;
   hostt += " HTTP/1.1\r\n";
-  hostt += "Host:"+ SERVER + ":80\r\n";
+  hostt += "Host:"+ SERVER + "\r\n";
+  hostt += "Authorization: Basic ZGF0YWxvZ2dlcjpkYXRhbG9nZ2VyMTIz\r\n";
   hostt += "Connection: close\r\n\r\n";
 
   Serial.println(hostt);
@@ -169,6 +170,7 @@ void get_request() {
         while(esp.available() > 0){
           //esp.println();
           char c = esp.read();
+          Serial.write(c);
           data += c;  
           
           //respuesta finalizada

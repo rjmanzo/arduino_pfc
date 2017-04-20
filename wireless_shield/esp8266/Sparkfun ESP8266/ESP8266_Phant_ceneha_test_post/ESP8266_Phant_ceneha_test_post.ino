@@ -33,6 +33,7 @@ Distributed as-is; no warranty is given.
 #include <SoftwareSerial.h>
 // Include the ESP8266 AT library:
 #include <SparkFunESP8266WiFi.h>
+// Wireless power pin
 #define POWA_W 6
 
 //////////////////////////////
@@ -43,24 +44,27 @@ Distributed as-is; no warranty is given.
 const char mySSID[] = "Minga!";
 const char myPSK[] = "hj?*ara4";
 
-
 /////////////////////
 // Phant Constants //
 /////////////////////
 // Phant detsination server:
-const String phantServer = "data.sparkfun.com";
+const String phantServer = "ceneha.herokuapp.com";
 // Phant public key:
-const String publicKey = "XGqxEdp4jvuwzbrVO3r0";
+const String uri = "/api-reg/";
 // Phant private key:
-const String privateKey = "1JyPN7Mrd0UdY7x6ozxw";
-String httpHeader = "POST /input/" + publicKey + ".txt HTTP/1.1\n" +
+//const String privateKey = "1JyPN7Mrd0UdY7x6ozxw";
+const String privateKey = "Y2VuZWhhOmNlbmVoYTEyMw==";
+String httpHeader = "POST " + uri + ".txt HTTP/1.1\n" +
                     "Host: " + phantServer + "\n" +
-                    "Phant-Private-Key: " + privateKey + "\n" +
+                    "Authorization: Basic " + privateKey + "\n" +
+                    "User-Agent: Arduino/1.0\n" + 
                     "Connection: close\n" + 
-                    "Content-Type: application/x-www-form-urlencoded\n";
+                    "Content-Type: application/json;\n";                    
+                    //"Content-Type: application/json; charset=UTF-8\n";
 
 void setup() 
 {
+    //Wireless Power line up!
   pinMode(POWA_W,OUTPUT);
   digitalWrite(POWA_W,HIGH);
   
@@ -69,18 +73,13 @@ void setup()
   
   // To turn the MG2639 shield on, and verify communication
   // always begin a sketch by calling cell.begin().
+  // To turn the MG2639 shield on, and verify communication
+  // always begin a sketch by calling cell.begin().
   while (esp8266.begin() != true)
   {
     Serial.print("Error connecting to ESP8266.");
-  delay(1000);
+  //delay(1000);
   }
-  
-  //status = esp8266.begin();
-  //if (status <= 0)
-  //{
-  //  Serial.println(F("Unable to communicate with shield. Looping"));
-  //  while(1) ;
-  //}
   
   esp8266.setMode(ESP8266_MODE_STA); // Set WiFi mode to station
   if (esp8266.status() <= 0) // If we're not already connected
@@ -91,7 +90,7 @@ void setup()
       while (1) ;
     }    
   }
-
+  
   // Get our assigned IP address and print it:
   Serial.print(F("My IP address is: "));
   Serial.println(esp8266.localIP());
@@ -127,16 +126,15 @@ void postToPhant()
   
   // Set up our Phant post parameters:
   String params;
-  //params += "analog0=" + String(analogRead(A0)) + "&";
-  //params += "analog1=" + String(analogRead(A1)) + "&";
-  //params += "analog2=" + String(analogRead(A2)) + "&";
-  //params += "analog3=" + String(analogRead(A3)) + "&";
-  //params += "analog4=" + String(analogRead(A4)) + "&";
-  //params += "analog5=" + String(analogRead(A5));
-  params += "humidity=" + String(8);
-  
+  params += "{\"data\":99,\"fechahora\":\"2017-04-12 22:16:00\",\"nod_red_id\":2,\"sen_id\":2}";
+
+  Serial.println();
+  delay(1000);
+  Serial.println();
+  delay(1000);
   
   Serial.println(F("Posting to Phant!"));
+
 
   client.print(httpHeader);
   client.print("Content-Length: "); client.println(params.length());
