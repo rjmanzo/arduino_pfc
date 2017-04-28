@@ -72,7 +72,6 @@ void setup()
     client.println("User-Agent: Arduino/1.0\n");
     client.println("Connection: close");
     client.println("Content-Type: application/json;");
-    //client.println();
 
   // Set up our Phant post parameters:
   String params;
@@ -104,7 +103,6 @@ void loop()
     while (true);
   }
 }
-
 
 void printWifiStatus()
 {
