@@ -1,0 +1,16 @@
+Por lo que estuvimos leyendo, para poder hacer la WSN y que dialoguen entre los distintos nodos debemos armar la topología
+de red utilizando para ello no la librería RF24, sino la RF24Network. Ya trae implementado el etiquetado de los nodos
+en funci�n de su disposición en la red.
+
+Etiquetado: Numeros octales
+
+Librerías necesarias:
+
+1) https://github.com/nRF24/RF24
+2) https://github.com/nRF24/RF24Network
+
+Referencias.
+http://tmrh20.github.io/RF24Network/classRF24Network.html
+
+Explica como hacer el tunnig entre los diferentes nodos
+http://tmrh20.github.io/RF24Network/Tuning.html

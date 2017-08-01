@@ -157,24 +157,24 @@ void loop()
   //de 8seg, por lo que se hacen varios ciclos para lograr los minutos requeridos
   //(por ej: para 10 minutos se hacen 10*60/8=75 ciclos)   
   
-  int cont=(minutos*60)/8;
-  for (int i = 0; i < cont; i++) { 
-    LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF); 
-  }
+  //int cont=(minutos*60)/8;
+  //for (int i = 0; i < cont; i++) { 
+  //  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF); 
+  //}
   //MODO DESPIERTO: CONFIGURACION,SENSADO Y ALMACENAMIENTO------
 
   // code will resume from here once the processor wakes up =============== //
   //LowPower.powerDown_on(ADC_ON,BOD_ON,TIMER2_ON,TIMER1_ON,TIMER0_ON,SPI_ON,USART0_ON,TWI_ON); 
   delay(50);    // important delay to ensure SPI bus is properly activated
 
-  pinMode(POWA, OUTPUT);
+  //pinMode(POWA, OUTPUT);
   //pinMode(LED1, OUTPUT);
-  digitalWrite(POWA, HIGH);  // turn on SD card power
-  delay(1);    // give delay to let the SD card and SHT15 get full powa
+  //digitalWrite(POWA, HIGH);  // turn on SD card power
+  //delay(1);    // give delay to let the SD card and SHT15 get full powa
  
   //Reinicializar el modulo SD
-  inicializaSD();
-  delay(50);
+  //inicializaSD();
+  //delay(50);
 
   //Reinicializo una instancia del reloj DS3231
   DS3231_init(DS3231_INTCN);

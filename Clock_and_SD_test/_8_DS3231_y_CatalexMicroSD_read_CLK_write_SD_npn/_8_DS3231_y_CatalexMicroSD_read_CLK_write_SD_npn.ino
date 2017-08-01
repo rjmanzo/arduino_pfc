@@ -1,10 +1,9 @@
 #include <Wire.h>
 #include <SD.h>
-//#include <SPI.h>
+#include <SPI.h>
 #include "ds3231.h"
 #include "rtc_ds3231.h"
 
-#define BUFF_MAX 128
 #define POWA 9 // pin 9 power suplite line
 
 uint8_t time[8];
@@ -46,11 +45,11 @@ void loop()
   temp = DS3231_get_treg();
 
   // there is a compile time option in the library to include unixtime support
-#ifdef CONFIG_UNIXTIME
-  snprintf(buff, BUFF_MAX, "%d.%02d.%02d %02d:%02d:%02d %ld", t.year, t.mon, t.mday, t.hour, t.min, t.sec, t.unixtime);
-#else
-  snprintf(buff, BUFF_MAX, "%d.%02d.%02d %02d:%02d:%02d", t.year, t.mon, t.mday, t.hour, t.min, t.sec);
-#endif
+  #ifdef CONFIG_UNIXTIME
+   snprintf(buff, BUFF_MAX, "%d.%02d.%02d %02d:%02d:%02d %ld", t.year, t.mon, t.mday, t.hour, t.min, t.sec, t.unixtime);
+  #else
+   snprintf(buff, BUFF_MAX, "%d.%02d.%02d %02d:%02d:%02d", t.year, t.mon, t.mday, t.hour, t.min, t.sec);
+  #endif
 
   Serial.println(buff);
   Serial.println(temp);

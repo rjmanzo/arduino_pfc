@@ -18,7 +18,6 @@
 #define MISOpin 11 // Pin Miso for SPI
 #define MOSIpin 12 // Pin Miso for SPI
 #define SDcsPin 10 // pin 9 is CS pin for MicroSD breakout
-#define LED1 8// pin 8 y 7 controls LED
 
 // Launch Variables   ******************************
 uint8_t time[8];
@@ -27,22 +26,7 @@ int minutos = 1; //minutos en modo sleep
 File myFile; //File for SD
 
 //*********************************************************************************************
-// FUNCTIONES
-
-/////----BLINK LED------/////
-
-void blink_led(int n,int led) {
-  pinMode(led, OUTPUT);
-
-  for (int i = 1; i < n; i++) // blink LED n times to indicate SD card write error
-  {
-    digitalWrite(led, HIGH);
-    delay(100);
-    digitalWrite(led, LOW);
-    delay(100);
-  }
-}
-
+// FUNCIONES
 
 /////----Inicializacion SD----/////
 
@@ -56,12 +40,9 @@ void inicializaSD() {
 
 
   if (!SD.begin(SDcsPin)) {
-    blink_led(6,LED1);
     return;
   }
   else {
-    //blink LED 2 time to indicate SD card init propperly
-    blink_led(1,LED1);
   }
 }
 
@@ -102,9 +83,6 @@ void almacenar_datos(File MyFile) {
     myFile.println(datastring);
   }
   else {
-    // if the file didn't open, print an error:
-    //LED ERROR!!!
-    blink_led(2,LED1);
   }
   //-----------------------------------------------------------------------------------------
 }
@@ -127,31 +105,21 @@ void setup()
   
   //Inicializo una instancia del reloj DS3231
   DS3231_init(DS3231_INTCN);
-  delay(50);
+  delay(50);  
 
 }
 
 // loop ****************************************************************
 
 void loop()
-{
+{  
+  //MODO SLEEP: CONFIGURACION------
+  delay(500);
 
   //MODO SLEEP: CONFIGURACION------
   
-  //blink LED 1 time to indicate sleep mode config set well
-  blink_led(1,LED1);
-
   digitalWrite(POWA, LOW);  // turn off microSD card to save power
   delay(1);  // give  delay for SD card and RTC to be low before processor sleeps to avoid it being stuck
-
-  // pulling down the SPI lines  
-  //pinMode(SDcsPin, OUTPUT); digitalWrite(SDcsPin, LOW); //pullup the CS pin
-  //pinMode(MOSIpin, OUTPUT); digitalWrite(MOSIpin, LOW);//pullup the MOSI pin
-  //pinMode(MISOpin, INPUT); digitalWrite(MISOpin, LOW); //pullup the MISO pin
-  //delay(50);
- 
-  //blink LED 1 time to indicate sleep mode config set well
-  blink_led(1,LED1);
 
   //el tiempo maximo que la libreria permite poner el Arduino en modo sleep es
   //de 8seg, por lo que se hacen varios ciclos para lograr los minutos requeridos
@@ -168,9 +136,11 @@ void loop()
   delay(50);    // important delay to ensure SPI bus is properly activated
 
   pinMode(POWA, OUTPUT);
-  pinMode(LED1, OUTPUT);
   digitalWrite(POWA, HIGH);  // turn on SD card power
   delay(50);    // give delay to let the SD card and SHT15 get full powa
+
+  //SPI.begin();
+  //Wire.begin();
  
   //Reinicializar el modulo SD
   inicializaSD();
@@ -185,8 +155,6 @@ void loop()
   //Almacenar fecha, hora y datos de los sensores
   almacenar_datos(myFile);
 
-  //------SENSORES----///
-
-  myFile.close();
+  myFile.close();  
 
 }

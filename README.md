@@ -1,6 +1,6 @@
 # Arduino
 
-En este repositorio se presentan los sketch Arduino desarrollados a lo largo del Proyecto Final de carrera de Ingeniría en Informática (PFC) de Renato José Manzo. En este se llevo a cabo el estudio y desarrollo de una red de sensores inálambrica (WSN - Wireless Sensor Network) en base Hardware libre, principalmente basado en la pltaforma Arduino. Por otra parte, se desarrollo un sistema web para la visualización y administración de la WSN utilziando como tnecnologías Django web framework para el desarrollo y Heroku como plataforma de servicio para el despliegue de la aplicación.
+En este repositorio se presentan los sketch Arduino desarrollados a lo largo del Proyecto Final de carrera (PFC) de Ingeniería en Informática de Renato José Manzo. En este se llevo a cabo el estudio y desarrollo de una red de sensores inálambrica (WSN - Wireless Sensor Network) en base Hardware libre, principalmente basado en la pltaforma Arduino. Por otra parte, se desarrollo un sistema web para la visualización y administración de la WSN utilziando como tnecnologías Django web framework para el desarrollo y Heroku como plataforma de servicio para el despliegue de la aplicación.
 
 ## Sketck
 
