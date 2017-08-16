@@ -1,37 +1,8 @@
-
-/*  Based on rRF24Network/examples/meshping from James Coliz, Jr. <maniacbug@ymail.com> 
+/*  Based on rRF24Network/examples/meshping from James Coliz, Jr. <maniacbug@ymail.com>
     and Updated in 2014 - TMRh20
-    
-    Wireless sensor network (WSN) - coordinator node code
-
-    Coder.
-    Manzo Renato José - Ceneha (UNL), Santa Fe, Argentina, 2017
-    
+    This code is for simply Router mote of a wireless sensor network (WSN)
+    Coder: Manzo Renato José - Ceneha (UNL), Santa Fe, Argentina, 2017
 */
-
-/*
- sen_id | sen_descrip | type_sen_id | type_sen_id | type_sen_descrip 
---------+-------------+-------------+-------------+------------------
-      1 | DHT22       |           1 |           1 | Temperatura
-      2 | DHT22       |           2 |           2 | Humedad
-      3 | BMP183      |           4 |           4 | Presion
-      4 | BMP183      |           1 |           1 | Temperatura
-      5 | Tensión     |           5 |           5 | Batería
-     99 | send data   |           - |           - | -
-    100 | node_config |           - |           - | -
-    101 | go to sleep |           - |           - | -
-
-  (+) 99,100 & 101 doesnt exist. We use as flags
-  
-  nodo_id | nod_descrip 
----------+-------------
-       1 | Nodo_0
-       2 | Nodo_1
-       3 | Nodo_2
-       4 | Nodo_3
-       5 | Nodo_4
-
- */
 /*********************************LIBRARY*********************************/
 #include <RF24Network.h>
 #include <RF24.h>
@@ -188,7 +159,6 @@ void loop() {
       float voltage;
       battery_voltage(voltage);
       payload_t payload_volt = {voltage, {t.year, t.mon, t.mday, t.hour, t.min, t.sec}, NODE_ADDRESS, 6}; // sending voltage measure sample
-      //WE NEED TO SEND THE MESSAGE TO ALL THE NODES OF THE NETWORK!
       ok = send_T(to, payload_volt);
       delay(50);
       
@@ -268,7 +238,7 @@ void loop() {
 void init_radio () { // nrfl24l01 radio Init
 
   radio.begin(); //nrfl24
-  radio.setPALevel(RF24_PA_MAX); // Establesco la potencia de la señal
+  radio.setPALevel(RF24_PA_HIGH); // Establesco la potencia de la señal
   network.begin(/*channel*/ 90, /*node address*/ this_node ); // todos los nodos deben estar en el mismo channel
 }
 

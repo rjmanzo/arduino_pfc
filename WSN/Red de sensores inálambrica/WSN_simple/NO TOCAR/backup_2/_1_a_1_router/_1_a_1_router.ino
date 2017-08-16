@@ -1,12 +1,7 @@
-
-/*  Based on rRF24Network/examples/meshping from James Coliz, Jr. <maniacbug@ymail.com> 
+/*  Based on rRF24Network/examples/meshping from James Coliz, Jr. <maniacbug@ymail.com>
     and Updated in 2014 - TMRh20
-    
-    Wireless sensor network (WSN) - Router mote code
-
-    Coder.
-    Manzo Renato José - Ceneha (UNL), Santa Fe, Argentina, 2017
-    
+    This code is for simply Router mote of a wireless sensor network (WSN)
+    Coder: Manzo Renato José - Ceneha (UNL), Santa Fe, Argentina, 2017
 */
 
 /*********************************LIBRARY*********************************/
@@ -110,7 +105,6 @@ void init_sensor();
 void init_datalogger();
 void sleep_mode (int sleep_minutes);
 void set_datetime(uint8_t years,uint8_t mon,uint8_t days,uint8_t hours,uint8_t minutes, uint8_t sec);
-void save_data(struct ts t, float payload, uint8_t node_id, uint8_t sensor_id);
 
 void setup(void)
 {
@@ -196,10 +190,6 @@ void loop() {
         battery_voltage(voltage);
         payload_t payload_volt = {voltage, {t.year, t.mon, t.mday, t.hour, t.min, t.sec}, NODE_ADDRESS, 7, {0,0,0,0,0,0,0,0,0,0,0,0}};  // sending voltage measure sample
         ok = send_T(to, payload_volt);
-
-        //datetime,payload,node_id,sensor_id
-        save_data(t,voltage,2,7); //save data in SD 
-        
         delay(50);
   
         //dht22 sensor
@@ -239,7 +229,7 @@ void loop() {
         ok = send_N(to);
       }
   
-      //delay(500);
+         //delay(500);
   
       //Time to sleep!
       //sleep_mode(sleep_minutes);    
@@ -251,7 +241,8 @@ void loop() {
       } else {
         printf_P(PSTR("%lu: APP Send failed\n\r"), millis());
         last_time_sent -= 100;                            // Try sending at a different time next time
-      }*/   
+      }*/
+   
     }
   }
 
@@ -268,7 +259,7 @@ void loop() {
     sleep_mode(sleep_minutes);   //go to sleep for a while
     delay(50);
     //EEPROM.write(7,0);
-  } 
+   } 
 
 }
 
@@ -279,8 +270,7 @@ void loop() {
 void init_radio () { // nrfl24l01 radio Init
 
   radio.begin(); //nrfl24
-  //radio.setPALevel(RF24_PA_HIGH); // Establesco la potencia de la señal
-  radio.setPALevel(RF24_PA_MAX); // Establesco la potencia de la señal
+  radio.setPALevel(RF24_PA_HIGH); // Establesco la potencia de la señal
   network.begin(/*channel*/ 90, /*node address*/ this_node ); // todos los nodos deben estar en el mismo channel
 }
 
@@ -316,7 +306,7 @@ void deactivate_wireless () { //switch OFF wireless shield
   digitalWrite(POWA_W, LOW); //Wireless lines UP!
 }
 
-void sleep_mode (int sleep_minutes) { // 
+void sleep_mode (int sleep_minutes) { // nrfl24l01 radio Init
 
   deactivate_datalogger();
   deactivate_wireless();
@@ -338,18 +328,15 @@ void sleep_mode (int sleep_minutes) { //
   //protocol initialization
   SPI.begin(); //spi
   Wire.begin(); //i2c
-  
-  pinMode(10, OUTPUT);    // Even we dont use it, we've to setup Pin 10 as output. It's the reference for SPI channel.
 
-  activate_wireless(); //wireless shield switch ON
+  activate_datalogger();
+  activate_wireless();
 
-  activate_datalogger(); //Datalogger shield switch ON
-  
-  init_radio();   // Init radio and assign the radio to the network  
+  init_radio();
 
   init_datalogger(); // set initial parameters for ds3231 & Catalex Micro SD
 
-  init_sensor();  // its set by the node_config flags
+  init_sensor();  //
   
   }
 

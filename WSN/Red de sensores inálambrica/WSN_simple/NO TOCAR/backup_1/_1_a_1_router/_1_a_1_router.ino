@@ -1,37 +1,9 @@
-
-/*  Based on rRF24Network/examples/meshping from James Coliz, Jr. <maniacbug@ymail.com> 
+/*  Based on rRF24Network/examples/meshping from James Coliz, Jr. <maniacbug@ymail.com>
     and Updated in 2014 - TMRh20
-    
-    Wireless sensor network (WSN) - coordinator node code
-
-    Coder.
-    Manzo Renato José - Ceneha (UNL), Santa Fe, Argentina, 2017
-    
+    This code is for simply Router mote of a wireless sensor network (WSN)
+    Coder: Manzo Renato José - Ceneha (UNL), Santa Fe, Argentina, 2017
 */
 
-/*
- sen_id | sen_descrip | type_sen_id | type_sen_id | type_sen_descrip 
---------+-------------+-------------+-------------+------------------
-      1 | DHT22       |           1 |           1 | Temperatura
-      2 | DHT22       |           2 |           2 | Humedad
-      3 | BMP183      |           4 |           4 | Presion
-      4 | BMP183      |           1 |           1 | Temperatura
-      5 | Tensión     |           5 |           5 | Batería
-     99 | send data   |           - |           - | -
-    100 | node_config |           - |           - | -
-    101 | go to sleep |           - |           - | -
-
-  (+) 99,100 & 101 doesnt exist. We use as flags
-  
-  nodo_id | nod_descrip 
----------+-------------
-       1 | Nodo_0
-       2 | Nodo_1
-       3 | Nodo_2
-       4 | Nodo_3
-       5 | Nodo_4
-
- */
 /*********************************LIBRARY*********************************/
 #include <RF24Network.h>
 #include <RF24.h>
@@ -41,17 +13,32 @@
 #include <LowPower.h> //LowPower - Sleep mode
 #include <SD.h> //SD card
 #include <ds3231.h> //DS3231
-#include "WiFiEsp.h"
-// Emulate Serial1 on pins 3/2 if not present
-#ifndef HAVE_HWSERIAL1
-#include "SoftwareSerial.h"
-SoftwareSerial Serial1(3, 2); // RX, TX
-#endif
+
+// SENSORS LIBRARY
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BMP183.h> //
+
+#include "DHT.h"
 
 /*********************************STATIC VARIABLES************************/
 #define POWA_W 6 //switch pin of wireless shield
 #define POWA_D 9 //switch pin of datalogger shield
+
 #define SDcsPin 10 // pin 10 is CS pin for MicroSD breakout
+
+// We have conflict between the datalogger shield and the BMP183 sensor, so me decide to use a use diferent SPI configuration
+#define BMP183_CLK  5 // CLK
+#define BMP183_SDO  4  // AKA MISO
+#define BMP183_SDI  3  // AKA MOSI
+#define BMP183_CS   2 // CS
+
+#define DHTPIN 2    // what digital pin we're connected to
+#define DHTTYPE DHT22  // DHT 22  (AM2302), AM2321
+
+/*********************************SENSOR OBJECT CREATION******************/
+// initialize with hardware SPI
+Adafruit_BMP183 bmp = Adafruit_BMP183(BMP183_CLK, BMP183_SDO, BMP183_SDI, BMP183_CS);
+DHT dht(DHTPIN, DHTTYPE); // DHT22
 
 RF24 radio(7, 8);                   // nRF24L01(+) radio attached using Getting Started board
 RF24Network network(radio);          // Network uses that radio
@@ -60,15 +47,14 @@ RF24Network network(radio);          // Network uses that radio
 ************* Set the Node Address *************************************
   /***********************************************************************/
 // These are the Octal addresses that will be assigned
-const uint16_t node_address_set[5] = { 00, 01, 011, 0111, 02};
+const uint16_t node_address_set[6] = { 00, 01, 011, 0111, 02};
 
 //tree topology
 // 0 = Master
 // 1 y 4 (01 - 02)   = Children of Master(00)
 // 2 (011) = Children of (01)
 // 3 (0111) = Children of (011)
-
-uint8_t NODE_ADDRESS = 0;  // This is the number we have to change for every new node
+uint8_t NODE_ADDRESS = 1;  // This is the number we have to change for every new node
 uint8_t MASTER_ADDRESS = 0;  // Use numbers 0 through to select an address from the array
 
 /*********************************SYSTEM VARIABLES ASSIGNATION************************/
@@ -93,11 +79,13 @@ struct payload_t {
   byte node_config[9]; 
 };
 
-//char ssid[] = "rena";            // your network SSID (name)
-//char pass[] = "123456789";        // your network password
-char ssid[] = "rena";            // your network SSID (name)
-char pass[] = "123456789";        // your network password
-int status = WL_IDLE_STATUS;     // the Wifi radio's status
+//Activate or not sensor lines 
+//int sensorline = 1; // bmp sensor line
+int sensorline = 2; // dht22 sensor line
+//int sensorline = 3; // bmp183 & dht22 sensor line
+
+//Sleep time in minutes
+int sleep_minutes = 1;
 
 /*********************************PROTOTYPES FUNCTIONS************************/
 bool send_T(uint16_t to, payload_t payload); // Prototypes for functions to send & handle messages
@@ -107,10 +95,13 @@ void handle_N(RF24NetworkHeader& header);
 void add_node(uint16_t node);
 
 void battery_voltage(float& voltage);  //Prototypes functions of sensor
+void bmp183(float& preassure, float& bmp_temp);
+void dht22(float& humidity, float& dht_temp);
 
 void activate_wireless();   //other Prototypes functions
 void activate_datalogger();
 void init_radio();
+void init_sensor(int& lineup);
 void init_datalogger();
 void sleep_mode (int sleep_minutes);
 void set_datetime(uint8_t years,uint8_t mon,uint8_t days,uint8_t hours,uint8_t minutes, uint8_t sec);
@@ -128,11 +119,13 @@ void setup(void)
   activate_datalogger(); //Datalogger shield switch ON
   
   Serial.begin(9600);
-  Serial.println("\n\rRF24Network - Coordinator mote \n\r");
+  Serial.println("\n\rRF24Network - Simply Router mote /\n\r");
 
   init_radio();   // Init radio and assign the radio to the network  
 
   init_datalogger(); // set initial parameters for ds3231 & Catalex Micro SD
+
+  init_sensor(sensorline);  // 1 - BMP183, 2 - DHT22 AND 3 FOR BOTH
 
 }
 
@@ -146,8 +139,8 @@ void loop() {
     network.peek(header);
 
     switch (header.type) {                             // Dispatch the message to the correct handler.
-      case 'T': handle_T(header); break; //with this function we recive all the package from nodes
-      case 'N': handle_N(header); break; //if this 
+      case 'T': handle_T(header); break;
+      case 'N': handle_N(header); break;
       default:  printf_P(PSTR("*** WARNING *** Unknown message type %c\n\r"), header.type);
         network.read(header, 0, 0);
         break;
@@ -177,18 +170,17 @@ void loop() {
       }
     }
 
-    //bool ok;
+    bool ok;
 
-    //if ( this_node > 00 || to == 00 ) {                   // Normal nodes send a 'T' ping
+    if ( this_node > 00 || to == 00 ) {                   // Normal nodes send a 'T' ping
       
-      /*struct ts t;
+      struct ts t;
       DS3231_get(&t); //Get time
             
       //ACA EL METODO SE TIENE QUE DAR CUENTA QUE SENSORES ESTAN ACTIVOS, POR AHORA QUEDA ASI
       float voltage;
       battery_voltage(voltage);
-      payload_t payload_volt = {voltage, {t.year, t.mon, t.mday, t.hour, t.min, t.sec}, NODE_ADDRESS, 6}; // sending voltage measure sample
-      //WE NEED TO SEND THE MESSAGE TO ALL THE NODES OF THE NETWORK!
+      payload_t payload_volt = {voltage, {t.year, t.mon, t.mday, t.hour, t.min, t.sec}, NODE_ADDRESS, 6, {0,0,0,0,0,0,0,0,0}}; // sending voltage measure sample
       ok = send_T(to, payload_volt);
       delay(50);
       
@@ -196,12 +188,12 @@ void loop() {
 
         float pressure, bmp_temp;
         bmp183 (pressure, bmp_temp);
-        payload_t payload_pres = {pressure, {t.year, t.mon, t.mday, t.hour, t.min, t.sec}, NODE_ADDRESS, 6}; // sending preasure sampler
+        payload_t payload_pres = {pressure, {t.year, t.mon, t.mday, t.hour, t.min, t.sec}, NODE_ADDRESS, 6, {0,0,0,0,0,0,0,0,0}}; // sending preasure sampler
         ok = send_T(to, payload_pres);
         delay(50);
 
         //payload_t payload_ptemp = {bmp_temp, {2017, 12, 12, 12, 12, 12}, NODE_ADDRESS, 1}; // sending voltage measure sample
-        payload_t payload_ptemp = {bmp_temp, {t.year, t.mon, t.mday, t.hour, t.min, t.sec}, NODE_ADDRESS, 6}; // sending preasure sampler
+        payload_t payload_ptemp = {bmp_temp, {t.year, t.mon, t.mday, t.hour, t.min, t.sec}, NODE_ADDRESS, 6, {0,0,0,0,0,0,0,0,0}}; // sending preasure sampler
         ok = send_T(to, payload_ptemp);
         delay(50);
                   
@@ -211,19 +203,19 @@ void loop() {
 
         float humidity, dht_temp;
         dht22 (humidity,dht_temp);
-        payload_t payload_hum = {humidity, {t.year, t.mon, t.mday, t.hour, t.min, t.sec}, NODE_ADDRESS, 2};
+        payload_t payload_hum = {humidity, {t.year, t.mon, t.mday, t.hour, t.min, t.sec}, NODE_ADDRESS, 2 , {0,0,0,0,0,0,0,0,0}};
         ok = send_T(to, payload_hum);
         delay (50);
   
-        payload_t payload_htemp = {dht_temp, {t.year, t.mon, t.mday, t.hour, t.min, t.sec}, NODE_ADDRESS, 1}; // sending bmp temperature sample
+        payload_t payload_htemp = {dht_temp, {t.year, t.mon, t.mday, t.hour, t.min, t.sec}, NODE_ADDRESS, 1, {0,0,0,0,0,0,0,0,0}}; // sending bmp temperature sample
         ok = send_T(to, payload_htemp);
-        delay(50);  */      
+        delay(50);        
                   
-     /* }        
+      }        
 
     } else {                                               // Base node sends the current active nodes out
       ok = send_N(to);
-    }*/
+    }
 
     //delay(500);
 
@@ -268,7 +260,7 @@ void loop() {
 void init_radio () { // nrfl24l01 radio Init
 
   radio.begin(); //nrfl24
-  radio.setPALevel(RF24_PA_MAX); // Establesco la potencia de la señal
+  radio.setPALevel(RF24_PA_HIGH); // Establesco la potencia de la señal
   network.begin(/*channel*/ 90, /*node address*/ this_node ); // todos los nodos deben estar en el mismo channel
 }
 
@@ -277,6 +269,15 @@ void init_datalogger () { // DS3231 & Catalex MicroSD Init
   SD.begin(SDcsPin);   //SD init on Pin SDcsPin CS (10)
   DS3231_init(DS3231_INTCN);  //clock init
 
+}
+
+void init_sensor (int& lineup) { //bmp183 & dht22 sensor Init
+
+  switch (lineup){ 
+    case 1: bmp.begin(); //Only bmp183
+    case 2: dht.begin(); //Only dht22 
+    case 3: dht.begin(); bmp.begin(); //both sensors
+    }
 }
 
 void activate_datalogger () { //switch ON datalogger shield
@@ -323,6 +324,8 @@ void sleep_mode (int sleep_minutes) { // nrfl24l01 radio Init
 
   init_datalogger(); // set initial parameters for ds3231 & Catalex Micro SD
 
+  init_sensor(sensorline);  // 1 - BMP183, 2 - DHT22 AND 3 FOR BOTH 
+
   
   }
 
@@ -360,6 +363,26 @@ void battery_voltage(float& voltage) {
     delay(1);
   }
   voltage = voltage / 10.0;   // average sample
+}
+
+//DHT22 (Humedad y temperatura)
+void dht22 (float& humidity, float& dht_temp) {
+
+  //Read humidity
+  humidity = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  dht_temp = dht.readTemperature();
+
+}
+
+//BMP183 (Presión atmosferica, altura y temperatura)
+void bmp183 (float& pressure, float& bmp_temp) {
+
+  //millibar (hPa)
+  pressure = bmp.getPressure() / 100.0;
+  //temperature
+  bmp_temp = bmp.getTemperature();
+
 }
 
 /**--------------------------------------------------------------------------
@@ -403,35 +426,12 @@ bool send_N(uint16_t to)
 void handle_T(RF24NetworkHeader& header) {
 
   //ACA SE SUPONE QUE DEBERIAMOS LEER EL STRUCT CON NUESTROS DATOS?
+  //unsigned long message;                                                                      // The 'T' message is just a ulong, containing the time
+  //network.read(header,&message,sizeof(unsigned long));
+  //printf_P(PSTR("%lu: APP Received %lu from 0%o\n\r"),millis(),message,header.from_node);
   payload_t payload;
-  network.read(header,&payload,sizeof(payload));
-  Serial.print("Received packet from Node ");
-  Serial.print(header.from_node);
-  Serial.print(" Data: ");
-  Serial.print(payload.data);
-  Serial.print(" - timestamp: ");
-  Serial.print(String(payload.timestamp[0]));
-  Serial.print("-");
-  Serial.print(String(payload.timestamp[1]));
-  Serial.print("-");
-  Serial.print(String(payload.timestamp[2]));
-  Serial.print("T");
-  Serial.print(String(payload.timestamp[3]));
-  Serial.print(":");
-  Serial.print(String(payload.timestamp[4]));
-  Serial.print(":");
-  Serial.print(String(payload.timestamp[5]));
-  Serial.print(" - node_red_id: ");
-  Serial.print(payload.nod_red_id);
-  Serial.print(" sen_id: ");
-  Serial.println(payload.sen_id);
-  delay(50);
-
-  /*
-  //pasos a seguir:
-  - Guardar el paquete en la SD
-  - 
-  */
+  network.read(header, &payload, sizeof(payload));
+  //dependiendo del tipo de dato recibido es la accion a realizar
 
   if ( header.from_node != this_node || header.from_node > 00 )                                // If this message is from ourselves or the base, don't bother adding it to the active nodes.
     add_node(header.from_node);

@@ -53,12 +53,13 @@ const String phantServer = "ceneha.herokuapp.com";
 const String uri = "/api-reg/?format=json";
 // Phant private key:
 //const String privateKey = "1JyPN7Mrd0UdY7x6ozxw";
-const String privateKey = "Y2VuZWhhOmNlbmVoYTEyMw==";
+const String privateKey = "Y2VuZWhhOmlub2FyZHUxMjM=";
 String httpHeader = "GET " + uri + " HTTP/1.1\n" +
                     "Host: " + phantServer + "\n" +
                     "Authorization: Basic " + privateKey + "\n" +
-                    "User-Agent: Arduino/1.0\n";/* + 
-                    //"Content-Type: application/json;\n";                    
+                    "User-Agent: Arduino/1.0\n" + 
+                    "Content-Type: application/json;\n" + 
+                    "Connection: close\n";                 
                     //"Content-Type: application/json; charset=UTF-8\n";*/
 
 void setup() 

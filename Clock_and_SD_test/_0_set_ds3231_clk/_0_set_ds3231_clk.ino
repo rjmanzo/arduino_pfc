@@ -3,6 +3,11 @@
 #include <Wire.h>
 #include "Sodaq_DS3231.h"
 
+/*********************************STATIC VARIABLES************************/
+#define POWA_D 9 //switch pin of datalogger shield
+#define SDcsPin 10 // pin 10 is CS pin for MicroSD breakout
+
+
 char weekDay[][4] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 
 //year, month, date, hour, min, sec and week-day(starts from 0 and goes to 6)
@@ -10,9 +15,10 @@ char weekDay[][4] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 //Take care of week-day also.
 DateTime dt(2011, 11, 10, 15, 18, 0, 5);
 
-
 void setup () 
 {
+    pinMode(POWA_D, OUTPUT);
+    digitalWrite(POWA_D, HIGH); //Datalogger lines UP!
     Serial.begin(9600);
     Wire.begin();
     rtc.begin();
@@ -20,8 +26,8 @@ void setup ()
     //rtc.setDateTime(dt); //Adjust date-time as defined 'dt' above 
 }
 
-void loop () 
-{
+void loop (){
+  
     DateTime now = rtc.now(); //get the current date-time
     Serial.print(now.year(), DEC);
     Serial.print('/');
@@ -37,5 +43,5 @@ void loop ()
     Serial.println();
     Serial.print(weekDay[now.dayOfWeek()]);
     Serial.println();
-    delay(1000);
+    delay(1);
 }

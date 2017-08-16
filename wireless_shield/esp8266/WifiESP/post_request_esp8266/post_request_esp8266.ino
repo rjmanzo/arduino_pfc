@@ -1,10 +1,30 @@
 /*
-  WiFiEsp example: WebClient
+ WiFiEsp example: WebClient
+ This sketch connects to google website using an ESP8266 module to
+ perform a simple web search.
+ For more details see: http://yaab-arduino.blogspot.com/p/wifiesp-example-client.html
+*/
 
-  This sketch connects to google website using an ESP8266 module to
-  perform a simple web search.
+/*
+System Data
+nodo_id | nod_descrip 
+---------+-------------
+       1 | Nodo_0
+       2 | Nodo_1
+       3 | Nodo_2
+       4 | Nodo_3
+       5 | Nodo_4
 
-  For more details see: http://yaab-arduino.blogspot.com/p/wifiesp-example-client.html
+sen_id | sen_descrip | type_sen_id | type_sen_id | type_sen_descrip 
+--------+-------------+-------------+-------------+------------------
+      1 | DHT22       |           1 |           1 | Temperatura
+      2 | DHT22       |           2 |           2 | Humedad
+      4 | BMP183      |           1 |           1 | Temperatura
+      5 | MB7092      |           3 |           3 | Distancia
+      3 | BMP183      |           4 |           4 | Presion
+      6 | MCP9808     |           1 |           1 | Temperatura
+      7 | Tensión     |           5 |           5 | Batería
+ 
 */
 
 #include "WiFiEsp.h"
@@ -17,11 +37,10 @@ SoftwareSerial Serial1(3, 2); // RX, TX
 
 #define POWA_W 6
 
-//char ssid[] = "Minga!";            // your network SSID (name)
-//char pass[] = "hj?*ara4";        // your network password
-char ssid[] = "ceneha-oeste";            // your network SSID (name)
-char pass[] = "nuevooeste";        // your network password
-
+char ssid[] = "Minga!";            // your network SSID (name)
+char pass[] = "hj?*ara4";        // your network password
+//char ssid[] = "rena";            // your network SSID (name)
+//char pass[] = "123456789";        // your network password
 int status = WL_IDLE_STATUS;     // the Wifi radio's status
 
 char server[] = "ceneha.herokuapp.com";
@@ -31,10 +50,10 @@ WiFiEspClient client;
 
 void setup()
 {
-  pinMode(POWA_W, OUTPUT);
-  digitalWrite(POWA_W, HIGH);
+  pinMode(POWA_W,OUTPUT);
+  digitalWrite(POWA_W,HIGH);
   // initialize serial for debugging
-  Serial.begin(9600);
+  Serial.begin(115200);
   // initialize serial for ESP module
   Serial1.begin(9600);
   // initialize ESP module
@@ -65,13 +84,22 @@ void setup()
   // if you get a connection, report back via serial
   if (client.connect(server, 80)) {
     Serial.println("Connected to server");
-    // Make a HTTP request
-    client.println("GET /api-reg/ HTTP/1.1");
+    // Make HTTP POST request
+    client.println("POST /api-reg/ HTTP/1.1");
     client.println("Host: ceneha.herokuapp.com");
-    client.println("Authorization: Basic Y2VuZWhhOmNlbmVoYTEyMw==");
+    client.println("Authorization: Token c0e0681798fce3a02b2df7b96cbd2851688051d2");
     client.println("User-Agent: Arduino/1.0\n");
+    client.println("Content-Type: application/json");
     client.println("Connection: close");
+    
+    // Set up our Phant post parameters:
+    String params;
+    params += "{\"data\":5.5,\"fechahora\":\"2017-08-12 22:16:00\",\"nod_red_id\":2,\"sen_id\":6}";
+
+    //add content length and data
+    client.print("Content-Length: "); client.println(params.length());
     client.println();
+    client.print(params);
 
   }
 }

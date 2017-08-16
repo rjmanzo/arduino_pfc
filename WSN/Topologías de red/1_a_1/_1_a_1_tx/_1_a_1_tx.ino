@@ -8,13 +8,6 @@
  Update 2014 - TMRh20
  */
 
-/**
- * Simplest possible example of using RF24Network 
- *
- * TRANSMITTER NODE
- * Every 2 seconds, send a payload to the receiver node.
- */
-
 #include <RF24Network.h>
 #include <RF24.h>
 #include <SPI.h>

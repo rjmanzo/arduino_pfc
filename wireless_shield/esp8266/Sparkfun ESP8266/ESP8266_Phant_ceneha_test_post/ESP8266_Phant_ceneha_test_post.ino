@@ -52,11 +52,10 @@ const String phantServer = "ceneha.herokuapp.com";
 // Phant public key:
 const String uri = "/api-reg/";
 // Phant private key:
-//const String privateKey = "1JyPN7Mrd0UdY7x6ozxw";
-const String privateKey = "Y2VuZWhhOmNlbmVoYTEyMw==";
+const String privateKey = "c0e0681798fce3a02b2df7b96cbd2851688051d2";
 String httpHeader = "POST " + uri + ".txt HTTP/1.1\n" +
                     "Host: " + phantServer + "\n" +
-                    "Authorization: Basic " + privateKey + "\n" +
+                    "Authorization: token " + privateKey + "\n" +
                     "User-Agent: Arduino/1.0\n" + 
                     "Connection: close\n" + 
                     "Content-Type: application/json;\n";                    
@@ -126,7 +125,7 @@ void postToPhant()
   
   // Set up our Phant post parameters:
   String params;
-  params += "{\"data\":99,\"fechahora\":\"2017-04-12 22:16:00\",\"nod_red_id\":2,\"sen_id\":2}";
+  params += "{\"data\":6,\"fechahora\":\"2017-08-09 T22:16:00\",\"nod_red_id\":2,\"sen_id\":6}";
 
   Serial.println();
   delay(1000);

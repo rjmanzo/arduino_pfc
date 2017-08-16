@@ -128,9 +128,9 @@ void get_request() {
   
   //get request string
   String hostt = "GET " + URI;
-  hostt += " HTTP/1.1\r\n";
+  hostt += "HTTP/1.1\r\n";
   hostt += "Host:"+ SERVER + "\r\n";
-  hostt += "Authorization: Basic ZGF0YWxvZ2dlcjpkYXRhbG9nZ2VyMTIz\r\n";
+  hostt += "Authorization: token c0e0681798fce3a02b2df7b96cbd2851688051d2\r\n";
   hostt += "Connection: close\r\n\r\n";
 
   Serial.println(hostt);

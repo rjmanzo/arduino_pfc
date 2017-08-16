@@ -17,7 +17,7 @@ energía hacia los modulos y por ende bajar el consumo.
 
 3.  sleep_mode_posta_Mini3_npn_HIGH
 
-
+Este sketch es una modificación del sketch sleep_mode_posta_Mini3_npn que nunca
 
 
 

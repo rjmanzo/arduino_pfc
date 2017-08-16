@@ -20,8 +20,8 @@
 #include <ds3231.h> //DS3231
 
 // SENSORS LIBRARY
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BMP183.h> //
+//#include <Adafruit_Sensor.h>
+//#include <Adafruit_BMP183.h>
 
 #include "DHT.h"
 
@@ -31,18 +31,19 @@
 
 #define SDcsPin 10 // pin 10 is CS pin for MicroSD breakout
 
+/*
 // We have conflict between the datalogger shield and the BMP183 sensor, so me decide to use a use diferent SPI configuration
 #define BMP183_CLK  5 // CLK
 #define BMP183_SDO  4  // AKA MISO
 #define BMP183_SDI  3  // AKA MOSI
-#define BMP183_CS   2 // CS
+#define BMP183_CS   2 // CS */
 
 #define DHTPIN 2    // what digital pin we're connected to
 #define DHTTYPE DHT22  // DHT 22  (AM2302), AM2321
 
 /*********************************SENSOR OBJECT CREATION******************/
 // initialize with hardware SPI
-Adafruit_BMP183 bmp = Adafruit_BMP183(BMP183_CLK, BMP183_SDO, BMP183_SDI, BMP183_CS);
+//Adafruit_BMP183 bmp = Adafruit_BMP183(BMP183_CLK, BMP183_SDO, BMP183_SDI, BMP183_CS);
 DHT dht(DHTPIN, DHTTYPE); // DHT22
 
 RF24 radio(7, 8);                   // nRF24L01(+) radio attached using Getting Started board
@@ -79,18 +80,10 @@ short next_ping_node_index = 0;
 struct payload_t {
   float data;
   int timestamp[6];
-  unsigned int nod_red_id;
+  unsigned int node_id;
   unsigned int sen_id;
   byte node_config[12]; 
 };
-
-//Activate or not sensor lines 
-//int sensorline = 1; // bmp sensor line
-int sensorline = 2; // dht22 sensor line
-//int sensorline = 3; // bmp183 & dht22 sensor line
-
-//Sleep time in minutes
-int sleep_minutes = 1;
 
 /*********************************PROTOTYPES FUNCTIONS************************/
 bool send_T(uint16_t to, payload_t payload); // Prototypes for functions to send & handle messages
@@ -100,49 +93,40 @@ void handle_N(RF24NetworkHeader& header);
 void add_node(uint16_t node);
 
 void battery_voltage(float& voltage);  //Prototypes functions of sensor
-void bmp183(float& preassure, float& bmp_temp);
+//void bmp183(float& preassure, float& bmp_temp);
 void dht22(float& humidity, float& dht_temp);
 
 void activate_wireless();   //other Prototypes functions
 void activate_datalogger();
+void init_node();
 void init_radio();
 void init_sensor();
 void init_datalogger();
 void sleep_mode (int sleep_minutes);
 void set_datetime(uint8_t years,uint8_t mon,uint8_t days,uint8_t hours,uint8_t minutes, uint8_t sec);
-void save_data(struct ts t, float payload, uint8_t node_id, uint8_t sensor_id);
+void save_data(struct ts t, float payload, uint8_t node_id, uint8_t sen_id);
+void send_data(struct ts t, float payload, uint8_t node_id, uint8_t sen_id,uint16_t to);
 
 void setup(void)
 {
-  //protocol initialization
-  SPI.begin(); //spi
-  Wire.begin(); //i2c
-  
-  pinMode(10, OUTPUT);    // Even we dont use it, we've to setup Pin 10 as output. It's the reference for SPI channel.
 
-  activate_wireless(); //wireless shield switch ON
+  Serial.begin(9600);  
+  //Serial.println("\n\rRF24Network - Simply Router mote \n\r");
 
-  activate_datalogger(); //Datalogger shield switch ON
-  
-  Serial.begin(9600);
-  Serial.println("\n\rRF24Network - Simply Router mote \n\r");
-
-  init_radio();   // Init radio and assign the radio to the network  
-
-  init_datalogger(); // set initial parameters for ds3231 & Catalex Micro SD
-
-  init_sensor();  // its set by the node_config flags
+  //This function set all the inicialization function, port and serial comunications
+  init_node();
 
 }
 
 void loop() {
 
-  if(EEPROM.read(0) == 0){
-
-    //wait x second for network boot
+  if(EEPROM.read(0)){                 // After first boot
 
     network.update();                                      // Pump the network regularly
-  
+
+    //wait x second for network boot
+    //WE NEED A CICLE OF 20 / 30 SECONDS SEEKING FOR STAR SENDIND PACKAGE
+    //---------------------------------------------------------------------------------------------------
     while ( network.available() ) {                      // Is there anything ready for us?
 
     RF24NetworkHeader header;                            // If so, take a look at it
@@ -155,19 +139,18 @@ void loop() {
         network.read(header, 0, 0);
         break; };
     
-    }
+    }    
+    //---------------------------------------------------------------------------------------------------
 
-    /* TIPS: Primero se sensa
-        Luego se guarda en SD
-        Posteriormente se envia el dato (si corresponde)
-        --> Si corresponde: Se busca en la EEPROM cada cuando se mide la variable. Si el ciclo
-        actual (en numero) corresponde al ciclo donde corresponde medir se llama a la funcion, se mide la variable
-        y se guarda la info en la sd.
-     * ****/
+    /*
+    if (EEPROM.read(7) == 0 && EEPROM.read(0)!= 0){     //after first boot. if we dont recive any start sending package the sinc procress start
+      int half_time = EEPROM.read(8) / 2;     //The sleep time goes to half
+      EEPROM.write(8,half_time);
+     } */
 
-    unsigned long now = millis();                         // Send a ping to the next node every 'interval' ms
-    if ( now - last_time_sent >= interval ) {
-      last_time_sent = now;
+    //unsigned long now = millis();                         // Send a ping to the next node every 'interval' ms
+    //if ( now - last_time_sent >= interval ) {
+      //last_time_sent = now;
   
       //NODO DONDE QUEREMOS MANDAR NUESTRO MSJ
       uint16_t to = other_node;                                   // Who should we send to? By default, send to base
@@ -184,26 +167,43 @@ void loop() {
   
       if ( this_node > 00 || to == 00 ) {                   // Normal nodes send a 'T' ping
 
-        //get sensor data
-        //save to SD
-        //send the 
+        //get sensor data  --> save to SD --> send data to coordinator
         
+        //if(EEPROM.read(6) != 0){    //now we can send data?
         struct ts t;
-        DS3231_get(&t); //Get time
-              
-        //ACA EL METODO SE TIENE QUE DAR CUENTA QUE SENSORES ESTAN ACTIVOS, POR AHORA QUEDA ASI
-        float voltage;
-        battery_voltage(voltage);
-        payload_t payload_volt = {voltage, {t.year, t.mon, t.mday, t.hour, t.min, t.sec}, NODE_ADDRESS, 7, {0,0,0,0,0,0,0,0,0,0,0,0}};  // sending voltage measure sample
-        ok = send_T(to, payload_volt);
+        DS3231_get(&t); //Get time           
 
-        //datetime,payload,node_id,sensor_id
-        save_data(t,voltage,2,7); //save data in SD 
+        float voltage; 
+        battery_voltage(voltage); //get voltage
         
+        save_data(t,voltage,2,7); //save data in SD  (datetime ,payload ,node_red_id ,sensor_id)
         delay(50);
-  
-        //dht22 sensor
+        
+        send_data(t,voltage,2,7, to); //send data to coordinator
+        delay(50);
+
         if(EEPROM.read(1) > 0 || EEPROM.read(2) > 0 ){
+          float humidity, dht_temp;
+          dht22(humidity,dht_temp);
+
+          if(1%EEPROM.read(1) == 0){
+            save_data(t,humidity,2,2); //save data in SD  (datetime ,payload ,node_red_id ,sensor_id)
+            delay(50);
+        
+            send_data(t,humidity,2,2, to); //send data to coordinator
+            delay(50);  
+          }
+          if(1%EEPROM.read(1) == 0){
+            save_data(t,dht_temp,2,1); //save data in SD  (datetime ,payload ,node_red_id ,sensor_id)
+            delay(50);
+        
+            send_data(t,dht_temp,2,1, to); //send data to coordinator
+            delay(50);  
+          }
+        }
+        
+        //dht22 sensor
+        /*if(EEPROM.read(1) > 0 || EEPROM.read(2) > 0 ){
           float humidity, dht_temp;
           dht22 (humidity,dht_temp);
   
@@ -217,7 +217,8 @@ void loop() {
             ok = send_T(to, payload_htemp);
             delay(50);
           }      
-        }     
+        }     */
+        /*
         //bmp183 sensor
         if(EEPROM.read(3) > 0 || EEPROM.read(4) > 0 ){
           float pressure, bmp_temp;
@@ -233,29 +234,15 @@ void loop() {
             ok = send_T(to, payload_ptemp);
             delay(50);
           }     
-        }          
+        }*/          
   
       } else {                                               // Base node sends the current active nodes out
         ok = send_N(to);
-      }
-  
-      //delay(500);
-  
-      //Time to sleep!
-      //sleep_mode(sleep_minutes);    
-  
-      //VER DE LLEVAR ESTA FUNCIONALIDAD ARRIBA, AL ENVIO DE CADA PAQUETE
-      /*
-      if (ok) {                                             // Notify us of the result
-        printf_P(PSTR("%lu: APP Send ok\n\r"), millis());
-      } else {
-        printf_P(PSTR("%lu: APP Send failed\n\r"), millis());
-        last_time_sent -= 100;                            // Try sending at a different time next time
-      }*/   
-    }
+      } 
+    //}
   }
-
-  //check trigger alarm for first boot 
+  
+  //check trigger alarm. First boot incomming!      ----------- This part of code only execute one time
   if (DS3231_triggered_a1()) {
     // INT has been pulled low
     DS3231_clear_a1f();   // clear a1 alarm flag and let INT go into hi-z
@@ -264,12 +251,10 @@ void loop() {
  
   //If the alarm has triggered Pro Mini goes to sleep
   if(EEPROM.read(0)){ //check the setting flags 
-    int sleep_minutes = EEPROM.read(8); //get the sleeptime from the flag
+    int sleep_minutes = EEPROM.read(5); //get the sleeptime from the flag
     sleep_mode(sleep_minutes);   //go to sleep for a while
-    delay(50);
-    //EEPROM.write(7,0);
-  } 
-
+  }
+  
 }
 
 /**--------------------------------------------------------------------------
@@ -279,7 +264,6 @@ void loop() {
 void init_radio () { // nrfl24l01 radio Init
 
   radio.begin(); //nrfl24
-  //radio.setPALevel(RF24_PA_HIGH); // Establesco la potencia de la señal
   radio.setPALevel(RF24_PA_MAX); // Establesco la potencia de la señal
   network.begin(/*channel*/ 90, /*node address*/ this_node ); // todos los nodos deben estar en el mismo channel
 }
@@ -294,7 +278,7 @@ void init_datalogger () { // DS3231 & Catalex MicroSD Init
 void init_sensor () { //bmp183 & dht22 sensor Init
 
   if(EEPROM.read(1) > 0 || EEPROM.read(2) > 0 ){ dht.begin(); } //dht22 sensor flag
-  if(EEPROM.read(3) > 0 || EEPROM.read(4) > 0 ){ bmp.begin(); } //bmp183 sensor flag
+  //if(EEPROM.read(3) > 0 || EEPROM.read(4) > 0 ){ bmp.begin(); } //bmp183 sensor flag
   
 }
 
@@ -316,25 +300,9 @@ void deactivate_wireless () { //switch OFF wireless shield
   digitalWrite(POWA_W, LOW); //Wireless lines UP!
 }
 
-void sleep_mode (int sleep_minutes) { // 
+//This function trigger initilization of all protocols, modules ,sensor, etc. 
+void init_node(){
 
-  deactivate_datalogger();
-  deactivate_wireless();
-
-  //setting sleep time period
-  /* the microcontroler only allow max sleeptime of 8 seconds. So, if you
-  *  want to sleep for ,i.e a minute, we need to make a loop of sleeping time cicle.
-  *  In our case we use the 4seconds sleeptime. We get better result in the division.  
-  *  c_loop = sleep_minutes*60)/4;
-  */  
-  if (sleep_minutes != 0){  // if c_loop is zero the Pro Mini dont sleep
-    int c_cloop=(sleep_minutes*60)/4;
-    
-    for (int i = 0; i < c_cloop; i++) { 
-        LowPower.powerDown(SLEEP_4S, ADC_OFF, BOD_OFF); 
-    }  
-  }
-  
   //protocol initialization
   SPI.begin(); //spi
   Wire.begin(); //i2c
@@ -344,14 +312,44 @@ void sleep_mode (int sleep_minutes) { //
   activate_wireless(); //wireless shield switch ON
 
   activate_datalogger(); //Datalogger shield switch ON
-  
+
   init_radio();   // Init radio and assign the radio to the network  
 
   init_datalogger(); // set initial parameters for ds3231 & Catalex Micro SD
 
   init_sensor();  // its set by the node_config flags
   
-  }
+}
+
+/**--------------------------------------------------------------------------
+   Sleep mode & Data manipulation: sleep mode function, datetime manipulation, send and save data
+   --------------------------------------------------------------------------*/
+
+void sleep_mode (int sleep_minutes) { // 
+
+  //setting sleep time period
+  /* the microcontroler only allow max sleeptime of 8 seconds. So, if you
+  *  want to sleep for ,i.e a minute, we need to make a loop of sleeping time cicle.
+  *  In our case we use the 4seconds sleeptime. We get better result in the division.  
+  *  c_loop = sleep_minutes*60)/4;
+  */  
+  if (sleep_minutes != 0){  // Only if sleep minutes >= 1 min the node goes to sleep
+
+     //deactivate all the modules
+    deactivate_datalogger();
+    deactivate_wireless();
+    
+    int c_cloop=(sleep_minutes*60)/4;
+
+    //sleep for c_loop times
+    for (int i = 0; i < c_cloop; i++) { 
+        LowPower.powerDown(SLEEP_4S, ADC_OFF, BOD_OFF); 
+    }
+     
+    init_node();    //after sleep mode we need to reinicializar the node 
+         
+  } //endif
+ } 
 
 /*DS3231_get_time (Fecha y hora)
   The library has the function DS3231_get(&t) to get the timestamp. Its return a struct by reference variable.
@@ -368,20 +366,25 @@ void set_datetime(uint8_t years,uint8_t mon,uint8_t days,uint8_t hours,uint8_t m
 }
 
 //save data into SD card
-void save_data(struct ts t, float payload, uint8_t node_id, uint8_t sensor_id){
+void save_data(struct ts t, float payload, uint8_t node_id, uint8_t sen_id){       
   
-  char fname[13];
+  char fname[15];
   String sfname = String(t.year) + String(t.mon) + String(t.mday) + ".CSV"; //AAAAMMDD.CSV
   sfname.toCharArray(fname,15);
   File myfile = SD.open(fname, FILE_WRITE); //if the file dont exist a new instance 'll be created
-
   int save_counter = word(EEPROM.read(9), EEPROM.read(8)); // how many package we have saved? (0-653325) 
-  
-  if (myfile){
-    String datastring = " ";
-    datastring += String(t.year) + "; " + String(t.mon) + "; " + String(t.mday); + "; " + String(t.hour) + String(t.min); + "; " + String(t.sec) + "; ";
-    datastring += String(payload) + "; " + String(node_id) + "; " + String(sensor_id); 
-    myfile.println(datastring);    //save the datastring
+
+  if (myfile){   
+    myfile.print(String(payload)); myfile.print(";");
+    myfile.print(String(node_id)); myfile.print(";");
+    myfile.print(String(sen_id)); myfile.print(";");    
+    myfile.print(String(t.year)); myfile.print(";");
+    myfile.print(String(t.mon)); myfile.print(";");
+    myfile.print(String(t.mday)); myfile.print(";");
+    myfile.print(String(t.hour)); myfile.print(";");
+    myfile.print(String(t.min)); myfile.print("; ");
+    myfile.println(String(t.sec));
+   
     myfile.close();    //close the file
    
     save_counter++; //we increase the save package counter
@@ -391,6 +394,16 @@ void save_data(struct ts t, float payload, uint8_t node_id, uint8_t sensor_id){
   } else {
       /*nothing for now*/
     }
+}
+
+//send data to destination
+void send_data(struct ts t, float payload, uint8_t node_id, uint8_t sen_id, uint16_t to){
+
+  bool ok;
+  
+  payload_t payload_t = {payload, {t.year, t.mon, t.mday, t.hour, t.min, t.sec}, node_id, sen_id, {0,0,0,0,0,0,0,0,0,0,0,0}};  // sending package to coordinator
+  ok = send_T(to, payload_t);  
+
 }
 
 /**--------------------------------------------------------------------------
@@ -422,6 +435,7 @@ void dht22 (float& humidity, float& dht_temp) {
 
 }
 
+/*
 //BMP183 (Presión atmosferica, altura y temperatura)
 void bmp183 (float& pressure, float& bmp_temp) {
 
@@ -430,7 +444,7 @@ void bmp183 (float& pressure, float& bmp_temp) {
   //temperature
   bmp_temp = bmp.getTemperature();
 
-}
+}*/
 
 /**--------------------------------------------------------------------------
    Funciones para el envio y transmision de paquetes
@@ -472,10 +486,9 @@ bool send_N(uint16_t to)
 */
 void handle_T(RF24NetworkHeader& header) {
 
-  //ACA SE SUPONE QUE DEBERIAMOS LEER EL STRUCT CON NUESTROS DATOS?
+  //ACA SE SUPONE QUE DEBERIAMOS LEER START SENDIND PACKAGE
   //unsigned long message;                                                                      // The 'T' message is just a ulong, containing the time
-  //network.read(header,&message,sizeof(unsigned long));
-  //printf_P(PSTR("%lu: APP Received %lu from 0%o\n\r"),millis(),message,header.from_node);
+
   payload_t payload;
   network.read(header, &payload, sizeof(payload));
   //dependiendo del tipo de dato recibido es la accion a realizar

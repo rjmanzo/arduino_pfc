@@ -15,13 +15,12 @@
 SoftwareSerial Serial1(3, 2); // RX, TX
 #endif
 
-#define POWA_W 6
-
 //char ssid[] = "Minga!";            // your network SSID (name)
 //char pass[] = "hj?*ara4";        // your network password
-char ssid[] = "ceneha-oeste";            // your network SSID (name)
-char pass[] = "nuevooeste";        // your network password
-
+//char ssid[] = "ceneha-oeste";            // your network SSID (name)
+//char pass[] = "nuevooeste";        // your network password
+char ssid[] = "rena";            // your network SSID (name)
+char pass[] = "123456789";        // your network password
 int status = WL_IDLE_STATUS;     // the Wifi radio's status
 
 char server[] = "ceneha.herokuapp.com";
@@ -31,10 +30,10 @@ WiFiEspClient client;
 
 void setup()
 {
-  pinMode(POWA_W,OUTPUT);
-  digitalWrite(POWA_W,HIGH);
+  pinMode(6, OUTPUT);
+  digitalWrite(6, HIGH);
   // initialize serial for debugging
-  Serial.begin(9600);
+  Serial.begin(115200);
   // initialize serial for ESP module
   Serial1.begin(9600);
   // initialize ESP module
@@ -66,21 +65,14 @@ void setup()
   if (client.connect(server, 80)) {
     Serial.println("Connected to server");
     // Make a HTTP request
-    client.println("POST /api-reg/ HTTP/1.1");
+    client.println("GET /api-config/ HTTP/1.1");
     client.println("Host: ceneha.herokuapp.com");
-    client.println("Authorization: Basic Y2VuZWhhOmNlbmVoYTEyMw==");
-    client.println("User-Agent: Arduino/1.0\n");
-    client.println("Connection: close");
+    client.println("Authorization: Token c0e0681798fce3a02b2df7b96cbd2851688051d2");
     client.println("Content-Type: application/json;");
-
-  // Set up our Phant post parameters:
-  String params;
-  params += "{\"data\":95,\"fechahora\":\"2017-04-12 22:16:00\",\"nod_red_id\":2,\"sen_id\":2}";
-
-  //add content length and data
-  client.print("Content-Length: "); client.println(params.length());
-  client.println();
-  client.print(params);
+    //client.println("User-Agent: Arduino/1.0\n");
+    client.println("Connection: close");    
+    client.println(); 
+        
   }
 }
 
@@ -103,6 +95,7 @@ void loop()
     while (true);
   }
 }
+
 
 void printWifiStatus()
 {

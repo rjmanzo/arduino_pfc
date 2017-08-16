@@ -42,6 +42,11 @@ Distributed as-is; no warranty is given.
 // password of your WiFi network.
 const char mySSID[] = "Minga!";
 const char myPSK[] = "hj?*ara4";
+//const char mySSID[] = "rena";
+//const char myPSK[] = "123456789";
+//char mySSID[] = "ceneha-oeste";            // your network SSID (name)
+//char myPSK[] = "nuevooeste";        // your network password
+
 
 
 /////////////////////
@@ -52,7 +57,8 @@ const String phantServer = "data.sparkfun.com";
 // Phant public key:
 const String publicKey = "XGqxEdp4jvuwzbrVO3r0";
 // Phant private key:
-const String privateKey = "1JyPN7Mrd0UdY7x6ozxw";
+//const String privateKey = "1JyPN7Mrd0UdY7x6ozxw";
+const String privateKey = "MG4XvoaQoVc5ozQXY8ny";
 String httpHeader = "Host: " + phantServer + "\n" +
                     "Phant-Private-Key: " + privateKey + "\n" +
                     "Connection: close\n" + 
@@ -68,25 +74,28 @@ void setup()
   
   // To turn the MG2639 shield on, and verify communication
   // always begin a sketch by calling cell.begin().
-  while (esp8266.begin() != true)
-  {
-    Serial.print("Error connecting to ESP8266.");
-  //delay(1000);
+  while (esp8266.begin() != true){    
+    Serial.println("Error connecting to ESP8266.");
+    delay(50);
   }
-  
-  //status = esp8266.begin();
-  //if (status <= 0)
-  //{
-  //  Serial.println(F("Unable to communicate with shield. Looping"));
-  //  while(1) ;
-  //}
-  
+
   esp8266.setMode(ESP8266_MODE_STA); // Set WiFi mode to station
+
+  /*
+  if (esp8266.status() <= 0)
+  {
+    while (esp8266.connect(mySSID, myPSK) < 0){}
+  }
+  delay(1000);
+  Serial.println(F("Connected to WiFi"));
+  delay(50);*/
+  
+  
   if (esp8266.status() <= 0) // If we're not already connected
   {
     if (esp8266.connect(mySSID, myPSK) < 0)
     {
-      Serial.println(F("Error connecting"));
+      Serial.println(F("Error connecting to SSID"));
       while (1) ;
     }    
   }

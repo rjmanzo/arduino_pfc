@@ -99,7 +99,7 @@ void tcp_connection() {
 
   char cmd = "AT+CIPSTART=\"TCP""\",\"""http://ceneha.herokuapp.com""\",80\r\n";
 
-  serial.println(cmd);
+  Serial.println(cmd);
   esp.println(cmd);
   //esp.println("AT+CIPSTART="+"TCP"+","+"http://ceneha.herokuapp.com"+,+80);
   Serial.println(cmd);
