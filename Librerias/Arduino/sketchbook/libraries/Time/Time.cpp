@@ -33,7 +33,7 @@
 #include <WProgram.h> 
 #endif
 
-#include "TimeLib.h"
+#include "Time.h"
 
 static tmElements_t tm;          // a cache of time elements
 static time_t cacheTime;   // the time the cache was updated
@@ -248,9 +248,7 @@ time_t sysUnsyncedTime = 0; // the time sysTime unadjusted by sync
 
 
 time_t now() {
-	// calculate number of seconds passed since last call to now()
-  while (millis() - prevMillis >= 1000) {
-		// millis() and prevMillis are both unsigned ints thus the subtraction will always be the absolute value of the difference
+  while (millis() - prevMillis >= 1000){      
     sysTime++;
     prevMillis += 1000;	
 #ifdef TIME_DRIFT_INFO

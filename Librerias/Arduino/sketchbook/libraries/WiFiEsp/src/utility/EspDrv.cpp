@@ -153,7 +153,7 @@ bool EspDrv::wifiConnect(char* ssid, const char *passphrase)
 
     // connect to access point, use CUR mode to avoid connection at boot
 	int ret = sendCmd(F("AT+CWJAP_CUR=\"%s\",\"%s\""), 20000, ssid, passphrase);
-
+	
 	if (ret==TAG_OK)
 	{
 		LOGINFO1(F("Connected to"), ssid);
