@@ -36,29 +36,29 @@ DHT dht(DHTPIN, DHTTYPE); // DHT22
 RF24 radio(7, 8);                   // nRF24L01(+) radio attached using Getting Started board
 RF24Network network(radio);         // Network uses that radio
 //uint8_t NODE_ID = 2;                // This is the id we have to change for webapp
-uint8_t NODE_ID = 3;                // This is the id we have to change for webapp
+uint8_t NODE_ID = 7;                // This is the id we have to change for webapp
 
 /***********************************************************************
 ************* Set the Node Address *************************************
   /***********************************************************************/
 // These are the Octal addresses that will be assigned
-const uint16_t node_address_set[6] = { 00, 01, 011, 0111, 02};
+const uint16_t node_address_set[5] = { 00, 01, 011, 0111, 01111};
 
 //tree topology
 // 0 = Master
-// 1 y 4 (01 - 02)   = Children of Master(00)
+// 1 (01) Children of Master(00)
 // 2 (011) = Children of (01)
 // 3 (0111) = Children of (011)
+// 4 (01111) = Children of (0111)
 
-uint8_t NODE_ADDRESS = 2;  // This is the number we have to change for every new node
-//uint8_t NODE_ADDRESS = 1;  // This is the number we have to change for every new node
+uint8_t NODE_ADDRESS = 1;  // This is the number we have to change for every new node
 uint8_t MASTER_ADDRESS = 0;  // Use numbers 0 through to select an address from the array
 
 /*********************************SYSTEM VARIABLES ASSIGNATION************************/
 const uint16_t this_node = node_address_set[NODE_ADDRESS];        // Address of our node in Octal format
 const uint16_t other_node = node_address_set[MASTER_ADDRESS];       // Address of the other node in Octal format
 
-const unsigned long interval = 38000; //ms  // How long will seek for package ?
+const unsigned long interval = 40000; //ms  // How long will seek for package ?
 //const unsigned long config_internal = 5000; //ms  // How long will seek for package ?
 const unsigned long config_interval = 0; //ms  // How long will seek for package ?
 
@@ -124,7 +124,7 @@ void loop() {
     while ( now - last_time_sent <= interval){ // any start sending package available ?
                 
       now = millis();
-      //Serial.println(now - last_time_sent);
+      Serial.println(now - last_time_sent);
 
       network.update();                                      // Pump the network regularly
       
@@ -220,8 +220,8 @@ void loop() {
         EEPROM.write(5,half_time);  
       }      
     } else {
-      //EEPROM.write(5,15); //we set the sleep_time to default
-      EEPROM.write(5,1); //we set the sleep_time to default
+      EEPROM.write(5,15); //we set the sleep_time to default
+      //EEPROM.write(5,1); //we set the sleep_time to default
     }
 
     // node_config period
@@ -231,7 +231,7 @@ void loop() {
     while ( now - last_time_sent <= config_interval){ // any node_config package available ?
                 
       now = millis();
-      //Serial.println(now - last_time_sent);
+      Serial.println(now - last_time_sent);
 
       network.update();                                      // Pump the network regularly
       
@@ -532,7 +532,7 @@ void handle_T(RF24NetworkHeader& header) {
     //Set alarm1111
     DS3231_clear_a1f(); //clear alarm
     int minutes = payload.timestamp[5]; 
-    //set_alarm(17, 56, 00); //set alarm in 3 minutes  
+    set_alarm(17, 56, 00); //set alarm in 3 minutes  
     
   }
 

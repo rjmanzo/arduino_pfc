@@ -32,49 +32,16 @@ La topología de red que utilizaremos para testear la funcionalidad del sistema 
 
 ## Sketck
 
-1. WSN_simple
-Al igual que la prueba 1_a_1 de 'Topología de Red' se utilizan dos nodos, el Maestro y un router/hoja.  
+1. WSN_lab_test_1
+Al igual que la prueba 1_a_1 de 'Topología de Red' se utilizan dos nodos: Coordinador (Master) y un router/hoja [Children of Master (00)].  
 
-La prueba consiste en un test completo que incluye distintos pasos en funciona del tipo de nodo.
+La prueba consiste en un test completo que incluye distintos pasos en funciona del tipo de nodo. 
 
-*Router
+*Router (Ver Router/leaft node flowchart)
 
-- Despertar
-- Sensar
-- Switch on: Datalogger y Wireless shield
-- Guardar datos en SD
-- Esperar confirmación de envio de datos
-	- Enviar datos al Coordinador --------------------------------------------------------------------------------------------------------------
-	- Esperar por nuevas configuraciones (timeout) ------------ ESTAS TRES TAREAS SE REALIZAN SIEMPRE Y CUANDO SE TENGA CONFIRMACIÓN DEL MAESTRO
-	- Reconfigurar (Si es necesario) -----------------------------------------------------------------------------------------------------------
-- Switch off: Datalogger y Wireless shield
-- Dormir (15 min)
-
-*Coordinador
-
-- Despertar
-- Switch on: Datalogger y Wireless shield
-- Chequeo de nodo
-- Sincronizacion 
-	* busca los que no estan
-- Enviar confirmación: "Empezando a transmitir datos..."
-- Mantener activo el proceso network hasta no recibir más paquetes
-	* Por cada paquete recibido guardar el dato en la SD
-- Crear JSON post request 
-- Envio de datos al servidor (Post request)
-- Pedidos de configuraciones (get request)
-- Enviar configuraciones a los nodos 
-- Reconfigurar (Si es necesario) 
-- Switch off: Datalogger y Wireless shield
-- Dormir (15 min)
+*Coordinador (Ver Coordinator node flowchart)
 
 En ambos nodos el ciclo se repite en periodos de 15 minutos.
 
 2. WSN_pruebas_de_laboratorio
 Test completo con la topología de red planteada para el testeo del sistema en su conjunto. La información es alocada en un servidor local del Ceneha.
-
-funcionanes incorporadas
-a) Inicialización del sistema. Los nodos entran en sleepmode en una hora determinada y desde este punto empieza el proceso.
-b)Se incorpora en la código el proceso de reconexión de los nodos ante la perdida de la sincronización con la red. 
-
-3. WSN_pruebas_de_campo

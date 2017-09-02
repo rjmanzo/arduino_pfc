@@ -68,8 +68,7 @@ WiFiEspClient client;
 ************* Set the Node Address *************************************
   /***********************************************************************/
 // These are the Octal addresses that will be assigned
-//const uint16_t node_address_set[6] = { 00, 01, 011, 0111, 02};
-const uint16_t node_address_set[5] = { 00, 01, 011, 0111, 02};
+const uint16_t node_address_set[6] = { 00, 01, 011, 0111, 02};
 
 //tree topology
 // 0 = Master
@@ -82,7 +81,7 @@ uint8_t NODE_ADDRESS = 0;  // This is the number we have to change for every new
 
 /*********************************SYSTEM VARIABLES ASSIGNATION************************/
 const uint16_t this_node = node_address_set[NODE_ADDRESS];        // Address of our node in Octal format
-const uint16_t other_node[5] = { 01, 011, 0111, 02};       // Address of the other node in Octal format
+const uint16_t other_node[5] = {01, 011, 0111, 02};       // Address of the other node in Octal format
 
 const unsigned long interval = 40000; //ms  // How long will seek for package ?
 //const unsigned long interval = 00; //ms  // How long will seek for package ?
@@ -141,28 +140,28 @@ void setup(void){
   //Serial.println("\n\rRF24Network - Coordinator node \n\r");
   //This function set the init function, port and serial comunications of the node
   init_node();
-  unsigned long now = millis();
-  last_time_sent = now;    
-    
+  
 }
 
 void loop(void) {
   
   if(EEPROM.read(0)){                 // After first boot
+
+    //connect_esp8266(); //connect to the wifi to send data !
         
-                  
-    //while (now - last_time_sent <= interval){ //  We have any package available to send ?
+    unsigned long now = millis(); 
+    last_time_sent = now;                     
+    while (now - last_time_sent <= interval){ //  We have any package available to send ?
                 
       now = millis();
 
       if (status != WL_CONNECTED){ //We are not connected?
         connect_esp8266(); //connect to the wifi to send data !
-      }  
-
-      if(now - last_time_sent <= interval){
-        network.update();                                      // Pump the network regularly
-        last_time_sent = now;
-      }      
+      }
+      //Serial.println(now);      
+    
+      network.update();                                      // Pump the network regularly
+      
       while ( network.available() ) {                      // Is there anything ready for us?
   
       RF24NetworkHeader header;                            // If so, take a look at it
@@ -182,8 +181,6 @@ void loop(void) {
 
       for (int i=0; i<5; i++){   // Who should we send to? All the nodes 
 
-        Serial.println(i);
-
         uint16_t to = other_node[i];                                   
         if ( num_active_nodes ) {                           // Or if we have active nodes,
           to = active_nodes[next_ping_node_index++];      // Send to the next active node
@@ -191,15 +188,15 @@ void loop(void) {
             next_ping_node_index = 0;                   // Next time start at the beginning
             to = 00;                                    // This time, send to node 00.
           }
-       }
+        }
         
         struct ts t;
         DS3231_get(&t); //Get time 
   
         send_action(t,0.0,0,99, to); //send the 'start sending package' to all nodes  
        }
-    //}
-    /*
+    }
+
     if (status == WL_CONNECTED){ //we are connected ? Send master node voltage reference  
       float voltage; 
       battery_voltage(voltage); //get voltage
@@ -213,7 +210,7 @@ void loop(void) {
 
    }
      
-   //status = WL_IDLE_STATUS; //set flag to default
+   status = WL_IDLE_STATUS; //set flag to default
 
    /*  FEATURES 
    *   (1) Get node_config from server. We already implement the method get_request_esp8266 for this purpose but not the parser.
@@ -223,7 +220,7 @@ void loop(void) {
    *   (3) Implement Sinc the WSN. with this method,  me set from scratch the clock, trigger alarm and sleep time to default.  
    */
    
-  }/*
+  }
           
   if (DS3231_triggered_a1()) {   //check trigger alarm. First boot incomming!
     // INT has been pulled low
@@ -235,7 +232,7 @@ void loop(void) {
   if(EEPROM.read(0)){ //check the setting flags 
     int sleep_minutes = EEPROM.read(5); //get the sleeptime from the flag
     sleep_mode(sleep_minutes);   //go to sleep for a while
-  }*/
+  }
 }        
 
 /**--------------------------------------------------------------------------

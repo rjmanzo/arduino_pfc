@@ -16,7 +16,6 @@
 #include <LowPower.h> //LowPower - Sleep mode
 #include <SD.h> //SD card
 #include <ds3231.h> //DS3231
-//#include "ceneha.h" //all the functions goes here
 
 // SENSORS LIBRARY
 #include <Adafruit_Sensor.h>
@@ -46,7 +45,8 @@ Adafruit_BMP183 bmp = Adafruit_BMP183(BMP183_CLK, BMP183_SDO, BMP183_SDI, BMP183
 
 RF24 radio(7, 8);                   // nRF24L01(+) radio attached using Getting Started board
 RF24Network network(radio);          // Network uses that radio
-uint8_t NODE_ID = 5;                // This is the id we have to change for webapp
+//uint8_t NODE_ID = 5;                // This is the id we have to change for webapp
+uint8_t NODE_ID = 3;                // This is the id we have to change for webapp
 
 /***********************************************************************
 ************* Set the Node Address *************************************
@@ -60,14 +60,15 @@ const uint16_t node_address_set[6] = { 00, 01, 011, 0111, 02};
 // 2 (011) = Children of (01)
 // 3 (0111) = Children of (011)
 
-uint8_t NODE_ADDRESS = 4;  // This is the number we have to change for every new node
+uint8_t NODE_ADDRESS = 2;  // This is the number we have to change for every new node
+//uint8_t NODE_ADDRESS = 4;  // This is the number we have to change for every new node
 uint8_t MASTER_ADDRESS = 0;  // Use numbers 0 through to select an address from the array
 
 /*********************************SYSTEM VARIABLES ASSIGNATION************************/
 const uint16_t this_node = node_address_set[NODE_ADDRESS];        // Address of our node in Octal format
 const uint16_t other_node = node_address_set[MASTER_ADDRESS];       // Address of the other node in Octal format
 
-const unsigned long interval = 40000; //ms  // How long will seek for package ?
+const unsigned long interval = 38000; //ms  // How long will seek for package ?
 //const unsigned long config_internal = 5000; //ms  // How long will seek for package ?
 const unsigned long config_interval = 0; //ms  // How long will seek for package ?
 
@@ -133,7 +134,7 @@ void loop() {
     while ( now - last_time_sent <= interval){ // any start sending package available ?
                 
       now = millis();
-      Serial.println(now - last_time_sent);
+      Serial.println(now);
 
       network.update();                                      // Pump the network regularly
       
@@ -172,6 +173,9 @@ void loop() {
           float voltage; 
           battery_voltage(voltage); //get voltage
 
+          //save_data(struct ts t, float data, uint8_t node_id, uint8_t sen_id);
+          //send_data(struct ts t, float data, uint8_t node_id, uint8_t sen_id,uint16_t to);
+
           ok[0] = send_data(t,voltage,NODE_ID,5, to); //send data to coordinator
           delay(100);
         
@@ -190,17 +194,17 @@ void loop() {
           delay(100);
           
           if(ok[1]){
-            save_data(t,pressure,NODE_ID,1); //save data in SD  (datetime ,payload ,node_red_id ,sensor_id)
+            save_data(t,pressure,NODE_ID,3); //save data in SD  (datetime ,payload ,node_red_id ,sensor_id)
             delay(50);
           }            
         }
         if(ok[2]==false && EEPROM.read(7)%EEPROM.read(4) == 0){  //sending humidity measure
         
-          ok[2] = send_data(t,bmp_temp,NODE_ID,1, to); //send data to coordinator
+          ok[2] = send_data(t,bmp_temp,NODE_ID,4, to); //send data to coordinator
           delay(100);  
           
-          if(ok[1]){
-            save_data(t,bmp_temp,NODE_ID,1); //save data in SD  (datetime ,payload ,node_red_id ,sensor_id)
+          if(ok[2]){
+            save_data(t,bmp_temp,NODE_ID,4); //save data in SD  (datetime ,payload ,node_red_id ,sensor_id)
             delay(50);
           }
         }           
@@ -222,10 +226,15 @@ void loop() {
     
     //sinc procress
     if (EEPROM.read(6) == 0){     // if we dont recive any start sending package the sinc procress start
-      int half_time = EEPROM.read(5) / 2;     //The sleep time goes to half
-      EEPROM.write(5,half_time);
+      if(EEPROM.read(5) == 1){
+        EEPROM.write(5,0);
+      } else{ 
+        int half_time = EEPROM.read(5) / 2;     //The sleep time goes to half
+        EEPROM.write(5,half_time);  
+      }      
     } else {
-      EEPROM.write(5,15); //we set the sleep_time to default
+      //EEPROM.write(5,15); //we set the sleep_time to default
+      EEPROM.write(5,1); //we set the sleep_time to default
     }
 
     // node_config and sleep time period
@@ -419,17 +428,6 @@ void save_data(struct ts t, float data, uint8_t node_id, uint8_t sen_id){
     myfile.print(String(t.hour)); myfile.print(";");
     myfile.print(String(t.min)); myfile.print("; ");
     myfile.println(String(t.sec));
-    /*String line = " "; 
-    line = String(data); myfile.print(line); myfile.print(";");
-    line = String(node_id); myfile.print(line); myfile.print(";");
-    line = String(sen_id); myfile.print(line); myfile.print(";");
-    line = String(t.year); myfile.print(line); myfile.print(";"); 
-    line = String(t.mon); myfile.print(line); myfile.print(";"); 
-    line = String(t.mday); myfile.print(line); myfile.print(";"); 
-    line = String(t.hour); myfile.print(line); myfile.print(";"); 
-    line = String(t.min); myfile.print(line); myfile.print(";"); 
-    line = String(t.sec); myfile.print(line); 
-    line = " ";         //we clean the string*/
     myfile.close();    //close the file
    
     save_counter++; //we increase the save package counter
@@ -464,7 +462,7 @@ void battery_voltage(float& voltage) {
   voltage = 0.0;
   for (int i = 0; i < 10; i++) {
     // Convert the analog reading (which goes from 0 - 1023) to a voltage (0 - 5V):
-    voltage += (sensorValue * 4.675) / 1024.0;
+    voltage += (sensorValue * 4.85) / 1024.0;
     delay(1);
   }
   voltage = voltage / 10.0;   // average sample

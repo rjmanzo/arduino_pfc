@@ -18,7 +18,10 @@
 #include <ds3231.h> //DS3231
 
 // SENSORS LIBRARY
-#include "DHT.h"
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BMP183.h>
+
+//#include "DHT.h"
 
 /*********************************STATIC VARIABLES************************/
 #define POWA_W 6 //switch pin of wireless shield
@@ -26,17 +29,23 @@
 
 #define SDcsPin 10 // pin 10 is CS pin for MicroSD breakout
 
-#define DHTPIN 2    // what digital pin we're connected to
-#define DHTTYPE DHT22  // DHT 22  (AM2302), AM2321
+
+// We have conflict between the datalogger shield and the BMP183 sensor, so me decide to use a use diferent SPI configuration
+#define BMP183_CLK  5 // CLK
+#define BMP183_SDO  4  // AKA MISO
+#define BMP183_SDI  3  // AKA MOSI
+#define BMP183_CS   2 // CS 
+
+//#define DHTPIN 2    // what digital pin we're connected to
+//#define DHTTYPE DHT22  // DHT 22  (AM2302), AM2321
 
 /*********************************SENSOR OBJECT CREATION******************/
 // initialize with hardware SPI
-DHT dht(DHTPIN, DHTTYPE); // DHT22
+Adafruit_BMP183 bmp = Adafruit_BMP183(BMP183_CLK, BMP183_SDO, BMP183_SDI, BMP183_CS);
 
 RF24 radio(7, 8);                   // nRF24L01(+) radio attached using Getting Started board
-RF24Network network(radio);         // Network uses that radio
-//uint8_t NODE_ID = 2;                // This is the id we have to change for webapp
-uint8_t NODE_ID = 3;                // This is the id we have to change for webapp
+RF24Network network(radio);          // Network uses that radio
+uint8_t NODE_ID = 4;                // This is the id we have to change for webapp
 
 /***********************************************************************
 ************* Set the Node Address *************************************
@@ -50,15 +59,14 @@ const uint16_t node_address_set[6] = { 00, 01, 011, 0111, 02};
 // 2 (011) = Children of (01)
 // 3 (0111) = Children of (011)
 
-uint8_t NODE_ADDRESS = 2;  // This is the number we have to change for every new node
-//uint8_t NODE_ADDRESS = 1;  // This is the number we have to change for every new node
+uint8_t NODE_ADDRESS = 3;  // This is the number we have to change for every new node
 uint8_t MASTER_ADDRESS = 0;  // Use numbers 0 through to select an address from the array
 
 /*********************************SYSTEM VARIABLES ASSIGNATION************************/
 const uint16_t this_node = node_address_set[NODE_ADDRESS];        // Address of our node in Octal format
 const uint16_t other_node = node_address_set[MASTER_ADDRESS];       // Address of the other node in Octal format
 
-const unsigned long interval = 38000; //ms  // How long will seek for package ?
+const unsigned long interval = 40000; //ms  // How long will seek for package ?
 //const unsigned long config_internal = 5000; //ms  // How long will seek for package ?
 const unsigned long config_interval = 0; //ms  // How long will seek for package ?
 
@@ -86,7 +94,7 @@ void handle_N(RF24NetworkHeader& header);
 void add_node(uint16_t node);
 
 void battery_voltage(float& voltage);  //Prototypes functions of sensor
-void dht22(float& humidity, float& dht_temp);
+void bmp183(float& preassure, float& bmp_temp);
 
 void activate_wireless();   //other Prototypes functions
 void activate_datalogger();
@@ -112,11 +120,11 @@ void setup(void)
 }
 
 void loop() {
-  
+
   EEPROM.write(6,0);                  //Start sending flag to default
   
-  if(EEPROM.read(0)){                 // After first boot    
-          
+  if(EEPROM.read(0)){                 // After first boot
+   
     bool ok[3] = {false,false,false}; //we set the send package flag to false. We dont have send the packages yet
     
     unsigned long now = millis(); 
@@ -124,7 +132,7 @@ void loop() {
     while ( now - last_time_sent <= interval){ // any start sending package available ?
                 
       now = millis();
-      //Serial.println(now - last_time_sent);
+      Serial.println(now - last_time_sent);
 
       network.update();                                      // Pump the network regularly
       
@@ -148,10 +156,10 @@ void loop() {
           next_ping_node_index = 0;                   // Next time start at the beginning
           to = 00;                                    // This time, send to node 00.
         }
-      }  
+      }
   
       if ( this_node > 00 || to == 00 ) {                   // Normal nodes send a 'T' ping
-      //get sensor data  -->  send data to coordinator --> save to SD
+      //get sensor data  -->  send data to coordinator --> save to SDr
 
       if(EEPROM.read(6) == 1){ //can we send data? 
 
@@ -163,6 +171,9 @@ void loop() {
           float voltage; 
           battery_voltage(voltage); //get voltage
 
+          //save_data(struct ts t, float data, uint8_t node_id, uint8_t sen_id);
+          //send_data(struct ts t, float data, uint8_t node_id, uint8_t sen_id,uint16_t to);
+
           ok[0] = send_data(t,voltage,NODE_ID,5, to); //send data to coordinator
           delay(100);
         
@@ -172,26 +183,26 @@ void loop() {
           }
         }
 
-        float humidity, dht_temp;
-        dht22(humidity,dht_temp);
+        float pressure, bmp_temp;
+        bmp183 (pressure, bmp_temp);
 
-        if(ok[1]==false && EEPROM.read(7)%EEPROM.read(1) == 0){  //sending temp measure
+        if(ok[1]==false && EEPROM.read(7)%EEPROM.read(3) == 0){  //sending temp measure
                   
-          ok[1] = send_data(t,dht_temp,NODE_ID,1, to); //send data to coordinator
+          ok[1] = send_data(t,pressure,NODE_ID,3, to); //send data to coordinator
           delay(100);
           
           if(ok[1]){
-            save_data(t,dht_temp,NODE_ID,1); //save data in SD  (datetime ,payload ,node_red_id ,sensor_id)
+            save_data(t,pressure,NODE_ID,3); //save data in SD  (datetime ,payload ,node_red_id ,sensor_id)
             delay(50);
           }            
         }
-        if(ok[2]==false && EEPROM.read(7)%EEPROM.read(2) == 0){  //sending humidity measure
+        if(ok[2]==false && EEPROM.read(7)%EEPROM.read(4) == 0){  //sending humidity measure
         
-          ok[2] = send_data(t,humidity,NODE_ID,2, to); //send data to coordinator
+          ok[2] = send_data(t,bmp_temp,NODE_ID,4, to); //send data to coordinator
           delay(100);  
           
           if(ok[2]){
-            save_data(t,humidity,NODE_ID,2); //save data in SD  (datetime ,payload ,node_red_id ,sensor_id)
+            save_data(t,bmp_temp,NODE_ID,4); //save data in SD  (datetime ,payload ,node_red_id ,sensor_id)
             delay(50);
           }
         }           
@@ -202,36 +213,32 @@ void loop() {
     }
 
     //loop cicle
-    if(EEPROM.read(5) == 15){     // if we are not in sinc mode we increase the loop_cicle  
+    if(EEPROM.read(5) == 15){   //only if we dont be in sinc mode 
       int loop_cicle = EEPROM.read(7) + 1;
       EEPROM.write(7,loop_cicle);
     }
    
     if(96%EEPROM.read(7) ==0){   //if cicle_counter reach 96 the counter start over on 1
       EEPROM.write(7,1);
-    }   
-
+    }
+    
     //sinc procress
     if (EEPROM.read(6) == 0){     // if we dont recive any start sending package the sinc procress start
-      if(EEPROM.read(5) == 1){
-        EEPROM.write(5,0);
-      } else{ 
-        int half_time = EEPROM.read(5) / 2;     //The sleep time goes to half
-        EEPROM.write(5,half_time);  
-      }      
+      int half_time = EEPROM.read(5) / 2;     //The sleep time goes to half
+      EEPROM.write(5,half_time);
     } else {
-      //EEPROM.write(5,15); //we set the sleep_time to default
-      EEPROM.write(5,1); //we set the sleep_time to default
+      EEPROM.write(5,15); //we set the sleep_time to default
+      //EEPROM.write(5,1); //we set the sleep_time to default
     }
 
-    // node_config period
+    // node_config and sleep time period
     now = millis(); 
     last_time_sent = now;         
     
-    while ( now - last_time_sent <= config_interval){ // any node_config package available ?
+    while ( now - last_time_sent <= config_interval){ // any sleeping or node_config package available ?
                 
       now = millis();
-      //Serial.println(now - last_time_sent);
+      Serial.println(now - last_time_sent);
 
       network.update();                                      // Pump the network regularly
       
@@ -261,7 +268,7 @@ void loop() {
     int sleep_minutes = EEPROM.read(5); //get the sleeptime from the flag
     sleep_mode(sleep_minutes);   //go to sleep for a while
   }
-}
+}       
 
 /**--------------------------------------------------------------------------
    Sensor & modules: init, activate and deactivate functions for sensors & modules
@@ -283,8 +290,8 @@ void init_datalogger () { // DS3231 & Catalex MicroSD Init
 
 void init_sensor () { //bmp183 & dht22 sensor Init
 
-  if(EEPROM.read(1) > 0 || EEPROM.read(2) > 0 ){ dht.begin(); } //dht22 sensor flag
-  //if(EEPROM.read(3) > 0 || EEPROM.read(4) > 0 ){ bmp.begin(); } //bmp183 sensor flag
+  //if(EEPROM.read(1) > 0 || EEPROM.read(2) > 0 ){ dht.begin(); } //dht22 sensor flag
+  if(EEPROM.read(3) > 0 || EEPROM.read(4) > 0 ){ bmp.begin(); } //bmp183 sensor flag
   
 }
 
@@ -415,7 +422,6 @@ void save_data(struct ts t, float data, uint8_t node_id, uint8_t sen_id){
     myfile.print(String(t.hour)); myfile.print(";");
     myfile.print(String(t.min)); myfile.print("; ");
     myfile.println(String(t.sec));
-   
     myfile.close();    //close the file
    
     save_counter++; //we increase the save package counter
@@ -428,11 +434,11 @@ void save_data(struct ts t, float data, uint8_t node_id, uint8_t sen_id){
 }
 
 //send data to destination
-bool send_data(struct ts t, float data, uint8_t node_id, uint8_t sen_id, uint16_t to){
+bool send_data(struct ts t, float payload, uint8_t node_id, uint8_t sen_id, uint16_t to){
 
   bool ok;
   
-  payload_t payload_t = {data, {t.year, t.mon, t.mday, t.hour, t.min, t.sec}, node_id, sen_id, {0,0,0,0,0,0,0,0,0,0,0,0}};  // sending package to coordinator
+  payload_t payload_t = {payload, {t.year, t.mon, t.mday, t.hour, t.min, t.sec}, node_id, sen_id, {0,0,0,0,0,0,0,0,0,0,0,0}};  // sending package to coordinator
   return ok = send_T(to, payload_t);  
 
 }
@@ -457,15 +463,15 @@ void battery_voltage(float& voltage) {
 }
 
 //DHT22 (Humedad y temperatura)
-void dht22 (float& humidity, float& dht_temp) {
+/*void dht22 (float& humidity, float& dht_temp) {
 
   //Read humidity
   humidity = dht.readHumidity();
   // Read temperature as Celsius (the default)
   dht_temp = dht.readTemperature();
 
-}
-/*
+}*/
+
 //BMP183 (Presión atmosferica, altura y temperatura)
 void bmp183 (float& pressure, float& bmp_temp) {
 
@@ -474,7 +480,7 @@ void bmp183 (float& pressure, float& bmp_temp) {
   //temperature
   bmp_temp = bmp.getTemperature();
 
-}*/
+}
 
 /**--------------------------------------------------------------------------
    Functions for send and recive menssages from the wsn
@@ -532,7 +538,7 @@ void handle_T(RF24NetworkHeader& header) {
     //Set alarm1111
     DS3231_clear_a1f(); //clear alarm
     int minutes = payload.timestamp[5]; 
-    //set_alarm(17, 56, 00); //set alarm in 3 minutes  
+    set_alarm(17, 56, 00); //set alarm in 3 minutes  
     
   }
 
