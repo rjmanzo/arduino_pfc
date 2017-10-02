@@ -45,8 +45,7 @@ Adafruit_BMP183 bmp = Adafruit_BMP183(BMP183_CLK, BMP183_SDO, BMP183_SDI, BMP183
 
 RF24 radio(7, 8);                   // nRF24L01(+) radio attached using Getting Started board
 RF24Network network(radio);          // Network uses that radio
-//uint8_t NODE_ID = 4;                // This is the id we have to change for webapp
-uint8_t NODE_ID = 10;                // This is the id we have to change for webapp
+uint8_t NODE_ID = 13;                // This is the id we have to change for webapp
 
 /***********************************************************************
 ************* Set the Node Address *************************************

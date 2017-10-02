@@ -157,6 +157,7 @@ void loop(void) {
       if(now - last_time_sent <= interval){
 
         last_time_sent = now;
+        Serial.println(last_time_sent);
       }
 
       if (status != WL_CONNECTED){ //We are not connected?
@@ -350,7 +351,7 @@ void connect_esp8266(){
   if (WiFi.status() == WL_NO_SHIELD) {
     //Serial.println("WiFi shield not present");
     // don't continue
-    while (true);
+    //while (true);
   }
   // attempt to connect to WiFi network
   while (status != WL_CONNECTED) {
@@ -415,8 +416,10 @@ void post_request_esp8266(int timestamp[6], float data, unsigned int node_id, un
     //Serial.println("Disconnecting from server...");
     //client.stop();  
     //}
+   } 
+  } else {
+      Serial.println("Problemas en el server");
    }
-  }
 }
 void get_request_esp8266(byte node_config[12]){
 

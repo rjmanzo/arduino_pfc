@@ -50,7 +50,7 @@
 /*first boot(0) - dht22 (1,2) - bmp183 (3,4) - sleep_minutes(5) - Start sending package(6) - loop cicle counter(7) - save package counter(8,9) - save package counter(10,11) */
 //byte node_config[12] = { 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0}; // Init flags - TESTING!
 //byte node_config[12] = { 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0}; // Init flags - Lab_test_nro_1 & field_test_nro_1
-byte node_config[12] = { 0, 1, 1, 1, 1, 15, 0, 0, 0, 0, 0, 0}; // Init flags - Lab_test_nro_2 & field_test_nro_2
+byte node_config[12] = { 1, 1, 1, 1, 1, 15, 0, 0, 0, 0, 0, 0}; // Init flags - Lab_test_nro_2 & field_test_nro_2
 
 
 /*********************************PROTOTYPES FUNCTIONS************************/
@@ -82,7 +82,7 @@ void setup(void)
 
   //Setting alarm
   DS3231_clear_a1f(); //clear alarm 
-  set_alarm(17, 40, 00);
+  //set_alarm(17, 40, 00);
 
   //clear the EEPROM memory of residual values
   for (int i = 0 ; i < EEPROM.length() ; i++) {

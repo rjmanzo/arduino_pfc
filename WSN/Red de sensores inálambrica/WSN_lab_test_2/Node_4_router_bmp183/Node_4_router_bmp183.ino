@@ -59,7 +59,7 @@ const uint16_t node_address_set[6] = { 00, 01, 011, 0111, 02};
 // 2 (011) = Children of (01)
 // 3 (0111) = Children of (011)
 
-uint8_t NODE_ADDRESS = 3;  // This is the number we have to change for every new node
+uint8_t NODE_ADDRESS = 4;  // This is the number we have to change for every new node
 uint8_t MASTER_ADDRESS = 0;  // Use numbers 0 through to select an address from the array
 
 /*********************************SYSTEM VARIABLES ASSIGNATION************************/

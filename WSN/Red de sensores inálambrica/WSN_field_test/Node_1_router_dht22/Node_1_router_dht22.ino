@@ -35,8 +35,7 @@ DHT dht(DHTPIN, DHTTYPE); // DHT22
 
 RF24 radio(7, 8);                   // nRF24L01(+) radio attached using Getting Started board
 RF24Network network(radio);         // Network uses that radio
-//uint8_t NODE_ID = 2;                // This is the id we have to change for webapp
-uint8_t NODE_ID = 7;                // This is the id we have to change for webapp
+uint8_t NODE_ID = 11;                // This is the id we have to change for webapp
 
 /***********************************************************************
 ************* Set the Node Address *************************************

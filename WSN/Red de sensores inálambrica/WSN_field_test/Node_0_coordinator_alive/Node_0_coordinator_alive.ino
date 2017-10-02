@@ -26,11 +26,11 @@
   
   nodo_id | nod_descrip 
 ---------+-------------
-       1 | Nodo_0
-       2 | Nodo_1
-       3 | Nodo_2
-       4 | Nodo_3
-       5 | Nodo_4
+       10 | Nodo_0
+       11 | Nodo_1
+       12 | Nodo_2
+       13 | Nodo_3
+       14 | Nodo_4
 
  */
 /*********************************LIBRARY*********************************/
@@ -58,9 +58,10 @@ SoftwareSerial Serial1(3, 2); // RX, TX
 
 RF24 radio(7, 8);                   // nRF24L01(+) radio attached using Getting Started board
 RF24Network network(radio);          // Network uses that radio
-uint8_t NODE_ID = 6;                // This is the id we have to change for app
+uint8_t NODE_ID = 1;                // This is the id we have to change for app
 // Initialize the Ethernet client object
 WiFiEspClient client;
+unsigned long now;
 
 
 
@@ -68,7 +69,8 @@ WiFiEspClient client;
 ************* Set the Node Address *************************************
   /***********************************************************************/
 // These are the Octal addresses that will be assigned
-const uint16_t node_address_set[5] = { 00, 01, 011, 0111, 01111};
+//const uint16_t node_address_set[6] = { 00, 01, 011, 0111, 02};
+const uint16_t node_address_set[5] = { 00, 01, 011, 111, 02};
 
 //tree topology
 // 0 = Master
@@ -81,9 +83,9 @@ uint8_t NODE_ADDRESS = 0;  // This is the number we have to change for every new
 
 /*********************************SYSTEM VARIABLES ASSIGNATION************************/
 const uint16_t this_node = node_address_set[NODE_ADDRESS];        // Address of our node in Octal format
-const uint16_t other_node[5] = {01, 011, 0111, 02};       // Address of the other node in Octal format
+const uint16_t other_node[5] = { 01, 011, 0111, 02};       // Address of the other node in Octal format
 
-const unsigned long interval = 40000; //ms  // How long will seek for package ?
+const unsigned long interval = 15000; //ms  // How long will seek for package ?
 //const unsigned long interval = 00; //ms  // How long will seek for package ?
 const unsigned long config_interval = 5000; //ms  // How long will seek for package ?
 //const unsigned long interval_s = 500; //ms  // How long will seek for package ?
@@ -139,27 +141,29 @@ void setup(void){
   Serial.begin(9600);  
   //Serial.println("\n\rRF24Network - Coordinator node \n\r");
   //This function set the init function, port and serial comunications of the node
-  init_node();
-  
+  init_node();  
+  last_time_sent = now;    
+    
 }
 
 void loop(void) {
   
-  if(EEPROM.read(0)){                 // After first boot
-
-    //connect_esp8266(); //connect to the wifi to send data !
-        
-    unsigned long now = millis(); 
-    last_time_sent = now;                     
-    while (now - last_time_sent <= interval){ //  We have any package available to send ?
+  if(EEPROM.read(0)){                 // After first boot        
+                  
+    //while (now - last_time_sent <= interval){ //  We have any package available to send ?
                 
       now = millis();
 
+      if(now - last_time_sent <= interval){
+
+        last_time_sent = now;
+        Serial.println(last_time_sent);
+      }
+
       if (status != WL_CONNECTED){ //We are not connected?
         connect_esp8266(); //connect to the wifi to send data !
-      }
-      //Serial.println(now);      
-    
+      }  
+
       network.update();                                      // Pump the network regularly
       
       while ( network.available() ) {                      // Is there anything ready for us?
@@ -177,26 +181,24 @@ void loop(void) {
 
       delay(50);
 
-      //bool ok;
-
       for (int i=0; i<5; i++){   // Who should we send to? All the nodes 
 
         uint16_t to = other_node[i];                                   
-        if ( num_active_nodes ) {                           // Or if we have active nodes,
+        /*if ( num_active_nodes ) {                           // Or if we have active nodes,
           to = active_nodes[next_ping_node_index++];      // Send to the next active node
           if ( next_ping_node_index > num_active_nodes ) { // Have we rolled over?
             next_ping_node_index = 0;                   // Next time start at the beginning
             to = 00;                                    // This time, send to node 00.
           }
-        }
+       }*/
         
         struct ts t;
         DS3231_get(&t); //Get time 
   
         send_action(t,0.0,0,99, to); //send the 'start sending package' to all nodes  
        }
-    }
-
+    //}
+    /*
     if (status == WL_CONNECTED){ //we are connected ? Send master node voltage reference  
       float voltage; 
       battery_voltage(voltage); //get voltage
@@ -210,7 +212,7 @@ void loop(void) {
 
    }
      
-   status = WL_IDLE_STATUS; //set flag to default
+   //status = WL_IDLE_STATUS; //set flag to default
 
    /*  FEATURES 
    *   (1) Get node_config from server. We already implement the method get_request_esp8266 for this purpose but not the parser.
@@ -227,12 +229,12 @@ void loop(void) {
     DS3231_clear_a1f();   // clear a1 alarm flag and let INT go into hi-z
     EEPROM.write(0,1); //set first boot flags UP! (Time to sleep) 
   }
- 
+  /*
   //If the alarm has triggered Pro Mini goes to sleep
   if(EEPROM.read(0)){ //check the setting flags 
     int sleep_minutes = EEPROM.read(5); //get the sleeptime from the flag
     sleep_mode(sleep_minutes);   //go to sleep for a while
-  }
+  }*/
 }        
 
 /**--------------------------------------------------------------------------
@@ -349,7 +351,7 @@ void connect_esp8266(){
   if (WiFi.status() == WL_NO_SHIELD) {
     //Serial.println("WiFi shield not present");
     // don't continue
-    while (true);
+    //while (true);
   }
   // attempt to connect to WiFi network
   while (status != WL_CONNECTED) {
@@ -414,8 +416,10 @@ void post_request_esp8266(int timestamp[6], float data, unsigned int node_id, un
     //Serial.println("Disconnecting from server...");
     //client.stop();  
     //}
+   } 
+  } else {
+      Serial.println("Problemas en el server");
    }
-  }
 }
 void get_request_esp8266(byte node_config[12]){
 
